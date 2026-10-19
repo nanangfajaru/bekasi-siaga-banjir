@@ -188,3 +188,4 @@ th { color: var(--ink-2); font-weight: 600; background: #f7f9fb; position: stick
 .sim-ctl { flex: 1 1 100%; }
 
 [hidden] { display: none !important; }
+.fc-x { display: block; font-size: 11px; color: var(--muted, #8a8f98); }

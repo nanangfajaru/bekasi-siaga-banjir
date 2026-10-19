@@ -231,14 +231,14 @@ function renderForecast() {
   $("bmkgDesa").textContent = `${k.nama} · Desa ${k.desa}`;
   if (V().tanggal) { $("forecast").innerHTML = `<div class="empty">Prakiraan BMKG per desa hanya tersedia untuk 2 hari ke depan dalam mode live.</div>`; return; }
   if (!k.bmkgOk || !k.duaHari?.length) { $("forecast").innerHTML = `<div class="empty">Prakiraan BMKG belum tersedia.</div>`; return; }
-  const slot = (lbl, s) => s
+  const slot = (lbl, jam, s) => s
     ? `<div class="fc-i">${s.ikon ? `<img src="${s.ikon}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : "<span></span>"}
-        <div><div class="fc-t">${lbl} · ${s.waktu.slice(11, 16).replace(":", ".")}</div><div class="fc-d">${s.cuaca}</div>
+        <div><div class="fc-t">${lbl} ${jam}${s.waktu.slice(11, 16).replace(":", ".") !== jam ? ` <span class="fc-x">data BMKG pukul ${s.waktu.slice(11, 16).replace(":", ".")}</span>` : ""}</div><div class="fc-d">${s.cuaca}</div>
         <div class="fc-n">${s.suhu}°C · hujan ${fmt(s.hujan)} mm · ${s.lembap}%</div></div></div>`
-    : `<div class="fc-i"><span></span><div><div class="fc-t">${lbl}</div><div class="fc-n">belum tersedia</div></div></div>`;
+    : `<div class="fc-i"><span></span><div><div class="fc-t">${lbl} ${jam}</div><div class="fc-n">belum tersedia</div></div></div>`;
   $("forecast").innerHTML = k.duaHari.map((h) => `<div class="fc-day">
       <h3>${new Date(h.tanggal + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}</h3>
-      ${slot("Pagi", h.pagi)}${slot("Siang", h.siang)}${slot("Malam", h.malam)}
+      ${slot("Pagi", "06.00", h.pagi)}${slot("Siang", "12.00", h.siang)}${slot("Malam", "18.00", h.malam)}
     </div>`).join("");
 }
 
