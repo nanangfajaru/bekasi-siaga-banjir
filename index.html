@@ -29,10 +29,29 @@
 
 <div class="simbar" id="simbar">
   <div class="wrap sim-row">
-    <label class="switch"><input type="checkbox" id="simOn"><span></span> Mode simulasi</label>
+    <div class="seg" role="group" aria-label="Mode tampilan">
+      <button type="button" data-mode="live" aria-pressed="true">Live</button>
+      <button type="button" data-mode="tanggal" aria-pressed="false">Simulasi tanggal</button>
+      <button type="button" data-mode="manual" aria-pressed="false">Simulasi manual</button>
+    </div>
+    <div class="sim-tgl" id="simTgl" hidden>
+      <label>Tanggal <input type="date" id="simDate"></label>
+      <div class="chips">
+        <span class="chips-l">Prakiraan:</span>
+        <button type="button" data-d="+1">Besok</button>
+        <button type="button" data-d="+3">3 hari lagi</button>
+        <button type="button" data-d="+7">7 hari lagi</button>
+        <button type="button" data-d="+14">14 hari lagi</button>
+        <span class="chips-l">Putar ulang banjir:</span>
+        <button type="button" data-d="2020-01-01">1 Jan 2020</button>
+        <button type="button" data-d="2021-02-20">20 Feb 2021</button>
+        <button type="button" data-d="2025-03-04">4 Mar 2025</button>
+      </div>
+      <div class="sim-info" id="simInfo"></div>
+    </div>
     <div class="sim-ctl" id="simCtl" hidden>
       <label>Tambahan hujan <b id="simRainV">0</b> mm/hari <input type="range" id="simRain" min="0" max="200" step="10" value="0"></label>
-      <label>Debit sungai <b id="simRiverV">1,0</b>× <input type="range" id="simRiver" min="1" max="3" step="0.1" value="1"></label>
+      <label>Debit sungai <b id="simRiverV">1,0</b>× <input type="range" id="simRiver" min="1" max="15" step="0.5" value="1"></label>
       <span class="sim-note">Data asli tidak berubah. Simulasi hanya untuk peragaan.</span>
     </div>
   </div>
@@ -63,7 +82,7 @@
         <select id="kecSel" aria-label="Pilih kecamatan"></select>
       </div>
       <div class="chart-box"><canvas id="chartRain" aria-label="Grafik curah hujan per jam"></canvas></div>
-      <p class="note"><span class="sw past"></span>24 jam terakhir &nbsp; <span class="sw fut"></span>24 jam ke depan (Open-Meteo). Kategori harian BMKG: lebat 50–100 mm, sangat lebat 100–150 mm, ekstrem &gt;150 mm.</p>
+      <p class="note"><span id="rainNote"></span> Kategori harian BMKG: ringan &lt;20 mm, sedang 20–50 mm, lebat 50–100 mm, sangat lebat 100–150 mm, ekstrem &gt;150 mm. 1 mm = 1 liter air per m².</p>
     </div>
     <div class="card">
       <div class="card-h"><h2>Prakiraan BMKG</h2><span class="sub" id="bmkgDesa"></span></div>
@@ -72,7 +91,7 @@
   </section>
 
   <section class="card">
-    <div class="card-h"><h2>Debit sungai</h2><span class="sub">model GloFAS · 14 hari lalu + 7 hari prakiraan</span></div>
+    <div class="card-h"><h2>Debit sungai</h2><span class="sub">model GloFAS · 14 hari sebelum + 7 hari sesudah · garis abu = normal (median 2019–2026)</span></div>
     <div class="rivers" id="rivers"></div>
   </section>
 
@@ -104,10 +123,11 @@
       <li><b>Curah hujan</b> (nilai terbesar dari 24 jam lalu, prakiraan 24 jam Open-Meteo, dan prakiraan 24 jam BMKG): ≥20 mm +1, ≥50 mm +2, ≥100 mm +3, ≥150 mm +4 (kategori hujan harian BMKG).</li>
       <li><b>Peringatan dini BMKG</b> yang menyebut kecamatan tersebut: +2.</li>
       <li><b>Laporan banjir warga</b> di kecamatan tersebut: +2 jika dalam 24 jam, +1 jika dalam 7 hari.</li>
-      <li><b>Sungai</b> yang melintasi kecamatan (Citarum atau Kali Bekasi): puncak debit 7 hari ke depan ≥1,5× rata-rata 14 hari +1, ≥2× +2, hanya jika melampaui debit tertinggi 14 hari terakhir (agar fluktuasi kecil tidak memicu status).</li>
+      <li><b>Sungai</b> yang melintasi kecamatan (Citarum atau Kali Bekasi): debit tertinggi hari itu s.d. 3 hari ke depan dibanding persentil debit harian 2019–2026: ≥P90 +1, ≥P95 +2, ≥P99 +3. Normal Citarum hilir ±239 m³/s (kapasitas ±1.100 m³/s), Kali Bekasi ±18 m³/s.</li>
       <li><b>Dataran rendah</b> (elevasi ≤5 m) +1, hanya jika ada faktor lain.</li>
     </ul>
     <p class="status-key" id="statusKey"></p>
+    <p><b>Simulasi tanggal</b> memakai prakiraan Open-Meteo (s.d. 15 hari ke depan) atau arsip reanalisis ERA5 (sejak 2019) untuk hujan, dan model GloFAS untuk debit sungai. Peringatan dini BMKG dan laporan warga tidak ikut dihitung dalam simulasi. Data model global cenderung lebih rendah dari curah hujan lokal yang ekstrem, terutama untuk banjir kiriman dari hulu.</p>
     <p class="muted">Dashboard ini bersifat informatif untuk tugas Smart City dan bukan penetapan status bencana resmi. Status resmi ditetapkan oleh BPBD Kabupaten Bekasi.</p>
   </section>
 

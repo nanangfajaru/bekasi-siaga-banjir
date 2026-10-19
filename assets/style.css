@@ -169,3 +169,20 @@ th { color: var(--ink-2); font-weight: 600; background: #f7f9fb; position: stick
   .fc { grid-template-columns: 1fr; }
   .kpi .v { font-size: 22px; }
 }
+
+/* mode & simulasi tanggal */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+.seg button { border: 0; background: transparent; padding: 7px 14px; font: inherit; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--brand); color: #fff; }
+.sim-tgl { display: flex; flex-direction: column; gap: 8px; flex: 1 1 100%; }
+.sim-tgl label { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.sim-tgl input[type=date] { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips-l { font-size: 12px; color: var(--muted); margin-left: 4px; }
+.chips button { border: 1px solid #e4c37a; background: #fff; border-radius: 999px; padding: 4px 11px; font: inherit; font-size: 13px; cursor: pointer; }
+.chips button:hover { background: #fff1cf; }
+.sim-info { font-size: 13px; color: #6b4a00; }
+.sim-ctl { flex: 1 1 100%; }
+
+[hidden] { display: none !important; }
