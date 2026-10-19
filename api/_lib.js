@@ -28,11 +28,33 @@ export const KECAMATAN = [
 ];
 
 // Titik sungai pada grid model GloFAS (Open-Meteo Flood API).
+// Ambang = persentil debit harian model 1 Jan 2019 – 19 Okt 2026 (2.849 hari), dihitung dari Open-Meteo Flood API.
+//   p50 = debit "normal" (median), p90 = jarang terjadi, p95 = sangat tinggi, p99 = ekstrem.
+// Referensi kapasitas Citarum hilir ±1.100 m³/s (Bappenas); banjir Pebayuran Feb 2021 ±1.300 m³/s.
 export const SUNGAI = [
-  { id: "citarum-hilir", nama: "Sungai Citarum (hilir, Pebayuran–Cabangbungin)", lat: -6.075, lon: 107.125 },
-  { id: "citarum-muara", nama: "Sungai Citarum (muara, Muaragembong)", lat: -5.975, lon: 107.025 },
-  { id: "kali-bekasi", nama: "Kali Bekasi (Tambun)", lat: -6.225, lon: 107.025 },
+  { id: "citarum", nama: "Sungai Citarum (hilir, Pebayuran–Muaragembong)", lat: -6.075, lon: 107.125,
+    p50: 239.4, p90: 681.3, p95: 766.4, p99: 870.0, kapasitas: 1100,
+    kecamatan: ["12", "13", "14", "16", "17"] },
+  { id: "kali-bekasi", nama: "Kali Bekasi (Tambun–Babelan)", lat: -6.225, lon: 107.025,
+    p50: 17.9, p90: 43.0, p95: 51.2, p99: 75.9, kapasitas: null,
+    kecamatan: ["01", "02", "05", "06"] },
 ];
+
+// Ringkas deret debit harian di sekitar tanggal acuan (index i).
+export function ringkasSungai(s, d, i) {
+  const v = d.river_discharge;
+  const kini = v[i];
+  const jendela = v.slice(i, i + 4).filter((x) => x != null);
+  const puncak3 = jendela.length ? Math.max(...jendela) : kini;
+  const depan = v.slice(i, i + 8).filter((x) => x != null);
+  const puncak7 = depan.length ? Math.max(...depan) : kini;
+  return {
+    id: s.id, nama: s.nama, lat: s.lat, lon: s.lon, kecamatan: s.kecamatan,
+    ambang: { p50: s.p50, p90: s.p90, p95: s.p95, p99: s.p99, kapasitas: s.kapasitas },
+    ok: true, satuan: "m³/s", tanggal: d.time[i], kini, puncak3, puncak7,
+    seri: d.time.map((t, k) => ({ tanggal: t, debit: v[k], setelah: k > i })),
+  };
+}
 
 const UA = { "User-Agent": "bekasi-siaga-banjir/1.0 (dashboard tugas smart city)" };
 
