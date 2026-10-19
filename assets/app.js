@@ -233,7 +233,7 @@ function renderForecast() {
   if (!k.bmkgOk || !k.duaHari?.length) { $("forecast").innerHTML = `<div class="empty">Prakiraan BMKG belum tersedia.</div>`; return; }
   const slot = (lbl, jam, s) => s
     ? `<div class="fc-i">${s.ikon ? `<img src="${s.ikon}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : "<span></span>"}
-        <div><div class="fc-t">${lbl} ${jam}${s.waktu.slice(11, 16).replace(":", ".") !== jam ? ` <span class="fc-x">data BMKG pukul ${s.waktu.slice(11, 16).replace(":", ".")}</span>` : ""}</div><div class="fc-d">${s.cuaca}</div>
+        <div><div class="fc-t">${lbl} ${jam}${s.waktu.slice(11, 16).replace(":", ".") !== jam ? ` <span class="fc-x">jam data BMKG ${s.waktu.slice(11, 16).replace(":", ".")}</span>` : ""}</div><div class="fc-d">${s.cuaca}</div>
         <div class="fc-n">${s.suhu}°C · hujan ${fmt(s.hujan)} mm · ${s.lembap}%</div></div></div>`
     : `<div class="fc-i"><span></span><div><div class="fc-t">${lbl} ${jam}</div><div class="fc-n">belum tersedia</div></div></div>`;
   $("forecast").innerHTML = k.duaHari.map((h) => `<div class="fc-day">
