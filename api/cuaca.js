@@ -5,9 +5,9 @@ async function bmkg(k) {
   try {
     const j = await getJSON(`https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=${k.adm4}`);
     const slots = (j.data?.[0]?.cuaca || []).flat().map((c) => ({
-      waktu: c.local_datetime, suhu: c.t, hujan: c.tp, cuaca: c.weather_desc, lembap: c.hu, angin: c.ws, ikon: c.image,
+      waktu: c.local_datetime, suhu: c.t, hujan: c.tp, cuaca: c.weather_desc, lembap: c.hu, angin: c.ws, ikon: c.image ? c.image.replace(/ /g, "%20") : null,
     }));
-    return { ok: true, slots: slots.slice(0, 16), analisis: j.data?.[0]?.cuaca?.[0]?.[0]?.analysis_date || null };
+    return { ok: true, slots: slots.slice(0, 12), analisis: j.data?.[0]?.cuaca?.[0]?.[0]?.analysis_date || null };
   } catch (e) {
     return { ok: false, slots: [], error: String(e.message || e) };
   }
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
         const idx = Math.max(0, t.findIndex((x) => x.slice(0, 13) === now));
         lalu = +p.slice(Math.max(0, idx - 24), idx).reduce((a, b) => a + (b || 0), 0).toFixed(1);
         depan = +p.slice(idx, idx + 24).reduce((a, b) => a + (b || 0), 0).toFixed(1);
-        perJam = t.slice(Math.max(0, idx - 24), idx + 24).map((x, j) => ({ waktu: x, hujan: p[Math.max(0, idx - 24) + j] }));
+        perJam = t.slice(Math.max(0, idx - 24), idx + 24).map((x, j) => [x.slice(5, 13), p[Math.max(0, idx - 24) + j]]);
       }
       const b = bm[i];
       const bmkgDepan = +b.slots.slice(0, 8).reduce((a, s) => a + (s.hujan || 0), 0).toFixed(1);

@@ -10,10 +10,11 @@ export default async function handler(req, res) {
         const d = j.daily;
         const today = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
         const i = Math.max(0, d.time.indexOf(today));
-        const median = d.river_discharge_median.slice(0, i + 1).filter((x) => x != null);
-        const normal = median.length ? median.reduce((a, b) => a + b, 0) / median.length : null;
+        // "normal" = rata-rata debit 14 hari terakhir (pembanding sederhana, bukan ambang resmi)
+        const lalu = d.river_discharge.slice(0, i + 1).filter((x) => x != null);
+        const normal = lalu.length ? lalu.reduce((a, b) => a + b, 0) / lalu.length : null;
         const kini = d.river_discharge[i];
-        const puncak7 = Math.max(...d.river_discharge.slice(i, i + 7).filter((x) => x != null));
+        const puncak7 = Math.max(...d.river_discharge.slice(i, i + 8).filter((x) => x != null));
         return {
           ...s, ok: true, satuan: "m³/s", hariIni: d.time[i], kini, normal: normal && +normal.toFixed(2),
           rasio: normal ? +(kini / normal).toFixed(2) : null,

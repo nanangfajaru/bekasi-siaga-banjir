@@ -1,1 +1,130 @@
-<!doctype html><meta charset="utf-8"><title>Bekasi Siaga Banjir</title><p>Sedang dibangun.</p>
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bekasi Siaga Banjir</title>
+<meta name="description" content="Dashboard realtime pemantauan risiko banjir Kabupaten Bekasi: cuaca BMKG, curah hujan, debit sungai, laporan warga, dan rekomendasi tindakan.">
+<link rel="stylesheet" href="assets/vendor/leaflet.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <div>
+      <p class="kicker">Smart City · Smart Environment · Kabupaten Bekasi</p>
+      <h1>Bekasi Siaga Banjir</h1>
+      <p class="lead">Dashboard realtime risiko banjir 23 kecamatan: prakiraan cuaca BMKG, curah hujan, debit sungai, peringatan dini, dan laporan warga.</p>
+    </div>
+    <div class="live">
+      <span class="dot" id="liveDot"></span>
+      <div>
+        <div class="live-l">Diperbarui</div>
+        <div class="live-v" id="updated">memuat…</div>
+      </div>
+      <button id="refresh" type="button">Muat ulang</button>
+    </div>
+  </div>
+</header>
+
+<div class="simbar" id="simbar">
+  <div class="wrap sim-row">
+    <label class="switch"><input type="checkbox" id="simOn"><span></span> Mode simulasi</label>
+    <div class="sim-ctl" id="simCtl" hidden>
+      <label>Tambahan hujan <b id="simRainV">0</b> mm/hari <input type="range" id="simRain" min="0" max="200" step="10" value="0"></label>
+      <label>Debit sungai <b id="simRiverV">1,0</b>× <input type="range" id="simRiver" min="1" max="3" step="0.1" value="1"></label>
+      <span class="sim-note">Data asli tidak berubah. Simulasi hanya untuk peragaan.</span>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="kpis" id="kpis" aria-live="polite"></section>
+
+  <section class="grid-2">
+    <div class="card map-card">
+      <div class="card-h">
+        <h2>Peta risiko per kecamatan</h2>
+        <div class="legend" id="mapLegend"></div>
+      </div>
+      <div id="map" role="img" aria-label="Peta status risiko banjir kecamatan di Kabupaten Bekasi"></div>
+      <p class="note">Titik = desa pantau BMKG di tiap kecamatan. Klik titik untuk detail. Segitiga biru = titik pantau sungai.</p>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>Peringkat risiko</h2><span class="sub">tertinggi di atas</span></div>
+      <ol class="rank" id="rank"></ol>
+    </div>
+  </section>
+
+  <section class="grid-2 wide-left">
+    <div class="card">
+      <div class="card-h">
+        <h2>Curah hujan per jam</h2>
+        <select id="kecSel" aria-label="Pilih kecamatan"></select>
+      </div>
+      <div class="chart-box"><canvas id="chartRain" aria-label="Grafik curah hujan per jam"></canvas></div>
+      <p class="note"><span class="sw past"></span>24 jam terakhir &nbsp; <span class="sw fut"></span>24 jam ke depan (Open-Meteo). Kategori harian BMKG: lebat 50–100 mm, sangat lebat 100–150 mm, ekstrem &gt;150 mm.</p>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>Prakiraan BMKG</h2><span class="sub" id="bmkgDesa"></span></div>
+      <div class="fc" id="forecast"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-h"><h2>Debit sungai</h2><span class="sub">model GloFAS · 14 hari lalu + 7 hari prakiraan</span></div>
+    <div class="rivers" id="rivers"></div>
+  </section>
+
+  <section class="grid-2">
+    <div class="card">
+      <div class="card-h"><h2>Peringatan dini cuaca BMKG</h2><span class="sub" id="pdSub"></span></div>
+      <div id="alerts" class="list"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>Laporan banjir warga</h2><span class="sub">PetaBencana.id · 7 hari</span></div>
+      <div id="reports" class="list"></div>
+    </div>
+  </section>
+
+  <section class="card policy">
+    <div class="card-h"><h2>Rekomendasi tindakan pemerintah daerah</h2><span class="sub">berubah otomatis mengikuti status</span></div>
+    <div id="policy" class="policy-grid"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-h"><h2>Data semua kecamatan</h2></div>
+    <div class="table-wrap"><table id="tbl"></table></div>
+  </section>
+
+  <section class="card about">
+    <h2>Cara status dihitung</h2>
+    <p>Setiap kecamatan diberi skor dari empat sumber data, lalu skor menentukan status:</p>
+    <ul>
+      <li><b>Curah hujan</b> (nilai terbesar dari 24 jam lalu, prakiraan 24 jam Open-Meteo, dan prakiraan 24 jam BMKG): ≥20 mm +1, ≥50 mm +2, ≥100 mm +3, ≥150 mm +4 (kategori hujan harian BMKG).</li>
+      <li><b>Peringatan dini BMKG</b> yang menyebut kecamatan tersebut: +2.</li>
+      <li><b>Laporan banjir warga</b> di kecamatan tersebut: +2 jika dalam 24 jam, +1 jika dalam 7 hari.</li>
+      <li><b>Sungai</b> yang melintasi kecamatan (Citarum atau Kali Bekasi): puncak debit 7 hari ke depan ≥1,5× rata-rata 14 hari +1, ≥2× +2, hanya jika melampaui debit tertinggi 14 hari terakhir (agar fluktuasi kecil tidak memicu status).</li>
+      <li><b>Dataran rendah</b> (elevasi ≤5 m) +1, hanya jika ada faktor lain.</li>
+    </ul>
+    <p class="status-key" id="statusKey"></p>
+    <p class="muted">Dashboard ini bersifat informatif untuk tugas Smart City dan bukan penetapan status bencana resmi. Status resmi ditetapkan oleh BPBD Kabupaten Bekasi.</p>
+  </section>
+
+  <section class="card about">
+    <h2>Sumber data (live)</h2>
+    <ul class="src">
+      <li><b>BMKG</b> – Prakiraan cuaca per desa (<code>api.bmkg.go.id/publik/prakiraan-cuaca</code>) dan peringatan dini cuaca (<code>bmkg.go.id/alerts/nowcast</code>). Sumber: BMKG.</li>
+      <li><b>Open-Meteo</b> – Curah hujan per jam dan elevasi (<code>api.open-meteo.com</code>), debit sungai model GloFAS (<code>flood-api.open-meteo.com</code>).</li>
+      <li><b>PetaBencana.id</b> – Laporan banjir dari warga (<code>api.petabencana.id/reports</code>).</li>
+    </ul>
+    <p class="muted">Kode sumber: <a href="https://github.com/nanangfajaru/bekasi-siaga-banjir">github.com/nanangfajaru/bekasi-siaga-banjir</a></p>
+  </section>
+</main>
+<footer class="wrap foot">Bekasi Siaga Banjir · Smart Environment Kabupaten Bekasi · data diperbarui otomatis setiap 10 menit</footer>
+
+<script src="assets/vendor/leaflet.js"></script>
+<script src="assets/vendor/chart.umd.min.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
