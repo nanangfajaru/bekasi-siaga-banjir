@@ -105,7 +105,9 @@ section.grid-2:nth-of-type(4) { grid-template-columns: 1fr 1fr; }
 .card-h select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
 
 /* forecast */
-.fc { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.fc { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.fc-day { display: grid; gap: 6px; align-content: start; }
+.fc-day h3 { margin: 0 0 2px; font-size: 13px; color: var(--brand); }
 .fc-i { border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: center; }
 .fc-i img { width: 40px; height: 40px; }
 .fc-t { font-size: 12px; color: var(--muted); }

@@ -7,7 +7,21 @@ async function bmkg(k) {
     const slots = (j.data?.[0]?.cuaca || []).flat().map((c) => ({
       waktu: c.local_datetime, suhu: c.t, hujan: c.tp, cuaca: c.weather_desc, lembap: c.hu, angin: c.ws, ikon: c.image ? c.image.replace(/ /g, "%20") : null,
     }));
-    return { ok: true, slots: slots.slice(0, 12), analisis: j.data?.[0]?.cuaca?.[0]?.[0]?.analysis_date || null };
+    // Prakiraan 2 hari ke depan (besok & lusa), dibagi pagi 06.00, siang 12.00, malam 18.00.
+    // Dipilih slot BMKG yang jamnya paling dekat (selisih maks. 2 jam).
+    const besok = new Date(Date.now() + 7 * 3600 * 1000 + 864e5).toISOString().slice(0, 10);
+    const lusa = new Date(Date.now() + 7 * 3600 * 1000 + 2 * 864e5).toISOString().slice(0, 10);
+    const pilih = (tgl, jam) => {
+      let best = null;
+      for (const sl of slots) {
+        if (!sl.waktu?.startsWith(tgl)) continue;
+        const d = Math.abs(+sl.waktu.slice(11, 13) - jam);
+        if (d <= 2 && (!best || d < best.d)) best = { d, sl };
+      }
+      return best ? best.sl : null;
+    };
+    const duaHari = [besok, lusa].map((tgl) => ({ tanggal: tgl, pagi: pilih(tgl, 6), siang: pilih(tgl, 12), malam: pilih(tgl, 18) }));
+    return { ok: true, slots: slots.slice(0, 8), duaHari, analisis: j.data?.[0]?.cuaca?.[0]?.[0]?.analysis_date || null };
   } catch (e) {
     return { ok: false, slots: [], error: String(e.message || e) };
   }
@@ -43,6 +57,7 @@ export default async function handler(req, res) {
         hujan24DepanBmkg: b.ok ? bmkgDepan : null,
         sekarang: b.slots[0] || null,
         bmkg: b.slots,
+        duaHari: b.duaHari || [],
         bmkgOk: b.ok,
         perJam,
       };

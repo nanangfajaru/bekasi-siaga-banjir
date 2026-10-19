@@ -229,14 +229,17 @@ function renderForecast() {
   const k = kecTerpilih();
   if (!k) return;
   $("bmkgDesa").textContent = `${k.nama} · Desa ${k.desa}`;
-  if (V().tanggal) { $("forecast").innerHTML = `<div class="empty">Prakiraan BMKG per desa hanya tersedia untuk 3 hari ke depan dalam mode live.</div>`; return; }
-  if (!k.bmkgOk || !k.bmkg.length) { $("forecast").innerHTML = `<div class="empty">Prakiraan BMKG belum tersedia.</div>`; return; }
-  $("forecast").innerHTML = k.bmkg.slice(0, 8).map((s) => {
-    const d = new Date(s.waktu.replace(" ", "T"));
-    const t = d.toLocaleString("id-ID", { weekday: "short", hour: "2-digit", minute: "2-digit" });
-    return `<div class="fc-i">${s.ikon ? `<img src="${s.ikon}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : "<span></span>"}
-      <div><div class="fc-t">${t}</div><div class="fc-d">${s.cuaca}</div><div class="fc-n">${s.suhu}°C · hujan ${fmt(s.hujan)} mm · ${s.lembap}%</div></div></div>`;
-  }).join("");
+  if (V().tanggal) { $("forecast").innerHTML = `<div class="empty">Prakiraan BMKG per desa hanya tersedia untuk 2 hari ke depan dalam mode live.</div>`; return; }
+  if (!k.bmkgOk || !k.duaHari?.length) { $("forecast").innerHTML = `<div class="empty">Prakiraan BMKG belum tersedia.</div>`; return; }
+  const slot = (lbl, s) => s
+    ? `<div class="fc-i">${s.ikon ? `<img src="${s.ikon}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : "<span></span>"}
+        <div><div class="fc-t">${lbl} · ${s.waktu.slice(11, 16).replace(":", ".")}</div><div class="fc-d">${s.cuaca}</div>
+        <div class="fc-n">${s.suhu}°C · hujan ${fmt(s.hujan)} mm · ${s.lembap}%</div></div></div>`
+    : `<div class="fc-i"><span></span><div><div class="fc-t">${lbl}</div><div class="fc-n">belum tersedia</div></div></div>`;
+  $("forecast").innerHTML = k.duaHari.map((h) => `<div class="fc-day">
+      <h3>${new Date(h.tanggal + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}</h3>
+      ${slot("Pagi", h.pagi)}${slot("Siang", h.siang)}${slot("Malam", h.malam)}
+    </div>`).join("");
 }
 
 function renderRivers() {
