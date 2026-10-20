@@ -1,7 +1,7 @@
 // Simulasi per tanggal: curah hujan per kecamatan + debit sungai untuk tanggal pilihan.
 //  - tanggal mendatang (s.d. 15 hari) dan 80 hari terakhir: prakiraan Open-Meteo
 //  - tanggal lebih lama (sejak 2019): arsip reanalisis ERA5 (Open-Meteo Archive)
-import { KECAMATAN, SUNGAI, getJSON, send, fail, ringkasSungai } from "./_lib.js";
+import { KECAMATAN, SUNGAI, LAUT, getJSON, send, fail, ringkasSungai, ringkasLaut, marineUrl } from "./_lib.js";
 
 const hari = (d, n) => new Date(Date.parse(d + "T00:00:00Z") + n * 864e5).toISOString().slice(0, 10);
 
@@ -20,8 +20,13 @@ export default async function handler(req, res) {
     const base = pakaiArsip ? "https://archive-api.open-meteo.com/v1/archive" : "https://api.open-meteo.com/v1/forecast";
     const hujanUrl = `${base}?latitude=${lat}&longitude=${lon}&start_date=${hari(tgl, -1)}&end_date=${tgl}&hourly=precipitation&timezone=Asia%2FJakarta`;
 
-    const [hj, ...sg] = await Promise.all([
-      getJSON(hujanUrl, 20000),
+    // Muka laut: tersedia sejak 23 Nov 2022 s.d. ±8 hari ke depan
+    const lautAda = tgl >= LAUT.mulai && selisih <= 8;
+    const lautP = lautAda
+      ? getJSON(marineUrl(`start_date=${hari(tgl, -2)}&end_date=${hari(tgl, Math.min(3, 8 - selisih))}`)).catch((e) => ({ error: String(e) }))
+      : Promise.resolve(null);
+    const [hj, lj, ...sg] = await Promise.all([
+      getJSON(hujanUrl, 20000), lautP,
       ...SUNGAI.map((s) => getJSON(`https://flood-api.open-meteo.com/v1/flood?latitude=${s.lat}&longitude=${s.lon}` +
         `&daily=river_discharge&start_date=${hari(tgl, -14)}&end_date=${hari(tgl, 7)}`).catch((e) => ({ error: String(e) }))),
     ]);
@@ -45,10 +50,16 @@ export default async function handler(req, res) {
       const i = Math.max(0, j.daily.time.indexOf(tgl));
       return ringkasSungai(s, j.daily, i);
     });
+    let laut = { id: LAUT.id, nama: LAUT.nama, lat: LAUT.lat, lon: LAUT.lon, kecamatan: LAUT.kecamatan, ok: false,
+      alasan: tgl < LAUT.mulai ? "Data muka laut tersedia mulai 23 November 2022" : "Prakiraan muka laut hanya s.d. 8 hari ke depan" };
+    if (lj?.hourly) {
+      const i = lj.hourly.time.indexOf(tgl + "T00:00");
+      if (i >= 0) laut = ringkasLaut(lj.hourly.time, lj.hourly.sea_level_height_msl, i);
+    }
     send(res, {
       tanggal: tgl, selisihHari: selisih,
       sumberHujan: pakaiArsip ? "Arsip reanalisis ERA5 (Open-Meteo Archive)" : (selisih > 0 ? "Prakiraan Open-Meteo" : "Open-Meteo (data model terkini)"),
-      kecamatan, sungai,
+      kecamatan, sungai, laut,
     }, pakaiArsip ? 86400 : 1800);
   } catch (e) {
     fail(res, e);

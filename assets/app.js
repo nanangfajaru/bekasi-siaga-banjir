@@ -12,21 +12,21 @@ const color = (s) => css(`--${s}`);
 
 const POLICY = {
   normal: ["Bersihkan saluran, gorong-gorong, dan pintu air secara rutin", "Uji kesiapan pompa air dan perahu karet BPBD", "Sosialisasi jalur evakuasi ke RT/RW di desa rawan"],
-  waspada: ["Pantau cuaca dan debit sungai setiap 3 jam", "Siagakan pompa portabel di titik genangan langganan", "Kirim info dini ke warga lewat RT/RW dan media sosial Pemkab"],
-  siaga: ["Buka posko siaga banjir di kantor kecamatan", "Perahu karet dan personel BPBD standby di lokasi", "Siapkan evakuasi lansia, anak, dan penyandang disabilitas", "Koordinasi operasi pintu air dengan BBWS Citarum"],
+  waspada: ["Pantau cuaca, debit sungai, dan jadwal pasang laut setiap 3 jam", "Siagakan pompa portabel di titik genangan langganan", "Kirim info dini ke warga lewat RT/RW dan media sosial Pemkab"],
+  siaga: ["Buka posko siaga banjir di kantor kecamatan", "Perahu karet dan personel BPBD standby di lokasi", "Siapkan evakuasi lansia, anak, dan penyandang disabilitas", "Koordinasi operasi pintu air dengan BBWS Citarum", "Saat pasang tinggi: periksa tanggul pesisir dan tutup pintu air muara di Muaragembong, Tarumajaya, Babelan"],
   awas: ["Evakuasi warga dari permukiman tergenang", "Aktifkan dapur umum dan pengungsian", "Usulkan status tanggap darurat bencana kepada Bupati", "Tutup sementara akses jalan yang terendam"],
 };
 
-let DATA = { cuaca: null, sungai: null, laporan: null, peringatan: null };
+let DATA = { cuaca: null, sungai: null, laporan: null, peringatan: null, laut: null };
 let map, layer, charts = {}, selKec = null;
-const SIM = { on: false, rain: 0, river: 1 };
+const SIM = { on: false, rain: 0, river: 1, laut: 0 };
 let MODE = "live";          // live | tanggal | manual
 let SIMT = null;            // hasil /api/simulasi
 const tglID = (d) => new Date(d + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
 // Data yang sedang ditampilkan: live atau hasil simulasi tanggal
 function V() {
-  if (MODE === "tanggal" && SIMT) return { cuaca: { kecamatan: SIMT.kecamatan }, sungai: { sungai: SIMT.sungai }, laporan: null, peringatan: null, tanggal: SIMT };
+  if (MODE === "tanggal" && SIMT) return { cuaca: { kecamatan: SIMT.kecamatan }, sungai: { sungai: SIMT.sungai }, laut: { laut: SIMT.laut }, laporan: null, peringatan: null, tanggal: SIMT };
   return DATA;
 }
 
@@ -39,14 +39,15 @@ async function getJSON(path) {
 async function load() {
   $("liveDot").classList.remove("err");
   $("updated").textContent = "memuat…";
-  const [c, s, l, p] = await Promise.allSettled(["api/cuaca", "api/sungai", "api/laporan", "api/peringatan"].map(getJSON));
+  const [c, s, l, p, t] = await Promise.allSettled(["api/cuaca", "api/sungai", "api/laporan", "api/peringatan", "api/laut"].map(getJSON));
   DATA = {
     cuaca: c.status === "fulfilled" ? c.value : null,
     sungai: s.status === "fulfilled" ? s.value : null,
     laporan: l.status === "fulfilled" ? l.value : null,
     peringatan: p.status === "fulfilled" ? p.value : null,
+    laut: t.status === "fulfilled" ? t.value : null,
   };
-  const gagal = [c, s, l, p].filter((x) => x.status !== "fulfilled").length;
+  const gagal = [c, s, l, p, t].filter((x) => x.status !== "fulfilled").length;
   if (gagal) $("liveDot").classList.add("err");
   $("updated").textContent = new Date().toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) + (gagal ? ` · ${gagal} sumber gagal` : "");
   render();
@@ -65,6 +66,15 @@ function statusSungai(s) {
   const a = s.ambang || {};
   const poin = nilai >= a.p99 ? 3 : nilai >= a.p95 ? 2 : nilai >= a.p90 ? 1 : 0;
   return { nilai, poin, status: STATUS[poin], persenNormal: a.p50 ? (nilai / a.p50) * 100 : null, persenKap: a.kapasitas ? (nilai / a.kapasitas) * 100 : null };
+}
+
+// Status pasang laut: puncak muka laut 24 jam (atau pada tanggal simulasi) dibanding persentil 2022–2026.
+function lautKini() { const l = V().laut?.laut; return l?.ok ? l : null; }
+function statusLaut(l) {
+  const nilai = (l.puncak24?.tinggi ?? 0) + (SIM.on ? SIM.laut : 0);
+  const a = l.ambang;
+  const poin = nilai >= a.p99 ? 3 : nilai >= a.p95 ? 2 : nilai >= a.p90 ? 1 : 0;
+  return { nilai, poin, status: STATUS[poin] };
 }
 
 function nilai(k) {
@@ -89,6 +99,12 @@ function nilai(k) {
   }
   if (sg) { skor += sg; alasan.push(sg >= 3 ? "debit sungai ekstrem" : sg >= 2 ? "debit sungai sangat tinggi" : "debit sungai tinggi"); }
 
+  const lt = lautKini();
+  if (lt && lt.kecamatan.includes(k.id)) {
+    const pl = statusLaut(lt).poin;
+    if (pl) { skor += pl; alasan.push(pl >= 3 ? "pasang laut ekstrem (rob)" : pl >= 2 ? "pasang laut sangat tinggi (rob)" : "pasang laut tinggi (rob)"); }
+  }
+
   if (skor > 0 && k.elevasi != null && k.elevasi <= 5) { skor += 1; alasan.push(`dataran rendah ${k.elevasi} m`); }
   const status = skor >= 5 ? "awas" : skor >= 3 ? "siaga" : skor >= 1 ? "waspada" : "normal";
   return { skor, status, hujan, alasan };
@@ -108,6 +124,7 @@ function render() {
   renderRain();
   renderForecast();
   renderRivers();
+  renderLaut();
   renderAlerts();
   renderReports();
   renderPolicy(kec);
@@ -145,6 +162,14 @@ function renderInd(kec) {
     { n: "Peringatan dini cuaca", pill: T ? pill("off", "Tidak dipakai di simulasi") : st(!!DATA.peringatan), v: T ? "–" : `${pd} <small>aktif</small>`,
       d: T ? "hanya ada untuk waktu sekarang" : "yang menyebut kecamatan di Kab. Bekasi", r: "kecamatan disebut +2",
       s: "BMKG Nowcast (RSS peringatan dini)" },
+    (() => {
+      const lt = lautKini(), sl = lt ? statusLaut(lt) : null;
+      return { n: "Pasang laut (rob)", pill: T ? (lt ? pill("sim", "Simulasi") : pill("off", "Tidak tersedia")) : st(!!lt),
+        v: lt ? `${fmt(sl.nilai, 2)} <small>m</small>` : "–",
+        d: lt ? `${T ? "puncak pada tanggal itu" : "puncak 24 jam ke depan"} · ${lt.puncak24.waktu.slice(11, 16).replace(":", ".")}` : (V().laut?.laut?.alasan || "data belum tersedia"),
+        r: "pesisir (Muaragembong, Tarumajaya, Babelan): ≥P90 +1 · ≥P95 +2 · ≥P99 +3",
+        s: "Open-Meteo Marine (model pasang surut SMOC), per jam" };
+    })(),
     { n: "Laporan banjir warga", pill: T ? pill("off", "Tidak dipakai di simulasi") : st(!!DATA.laporan), v: T ? "–" : `${lap} <small>laporan</small>`,
       d: T ? "hanya ada untuk waktu sekarang" : "7 hari terakhir di Kab. Bekasi", r: "dalam 24 jam +2 · dalam 7 hari +1",
       s: "PetaBencana.id (laporan warga)" },
@@ -159,7 +184,7 @@ function renderKPI(kec) {
   const nWaspada = kec.filter((k) => k.status === "waspada").length;
   const maxLalu = kec.reduce((a, b) => ((b.hujan24Lalu || 0) > (a.hujan24Lalu || 0) ? b : a), kec[0]);
   const maxDepan = kec.reduce((a, b) => (Math.max(b.hujan24Depan || 0, b.hujan24DepanBmkg || 0) > Math.max(a.hujan24Depan || 0, a.hujan24DepanBmkg || 0) ? b : a), kec[0]);
-  const cit = V().sungai?.sungai?.find((s) => s.id === "citarum");
+  const lt = lautKini(), sl = lt ? statusLaut(lt) : null;
   const T = V().tanggal;
   const pd = V().peringatan?.bekasi?.length || 0;
   const lap = laporanNyata().filter((r) => r.wilayah === "Kabupaten Bekasi").length;
@@ -170,14 +195,14 @@ function renderKPI(kec) {
     <div class="kpi"><div class="k">Kecamatan siaga/awas</div><div class="v">${nSiaga}<small style="font-size:14px;color:var(--muted)"> / 23</small></div><div class="d">${nWaspada} kecamatan waspada</div></div>
     <div class="kpi"><div class="k">${T ? "Hujan sehari sebelumnya" : "Hujan 24 jam terakhir"}</div><div class="v">${fmt(maxLalu.hujan24Lalu)} mm</div><div class="d">tertinggi di ${maxLalu.nama}</div></div>
     <div class="kpi"><div class="k">${T ? "Hujan pada tanggal itu" : "Prakiraan hujan 24 jam"}</div><div class="v">${fmt(Math.max(maxDepan.hujan24Depan || 0, maxDepan.hujan24DepanBmkg || 0))} mm</div><div class="d">tertinggi di ${maxDepan.nama}</div></div>
-    <div class="kpi"><div class="k">Debit Citarum hilir</div><div class="v">${cit?.ok ? fmt(cit.kini, 0) : "–"} <small style="font-size:13px">m³/s</small></div><div class="d">${cit?.ok ? `${fmt((cit.kini / cit.ambang.p50) * 100, 0)}% dari normal · ${fmt((cit.kini / cit.ambang.kapasitas) * 100, 0)}% kapasitas` : "data belum tersedia"}</div></div>
+    <div class="kpi"><div class="k">${T ? "Pasang laut tertinggi (tanggal itu)" : "Pasang laut tertinggi 24 jam"}</div><div class="v">${lt ? fmt(sl.nilai, 2) : "–"} <small style="font-size:13px">m</small> ${lt ? badge(sl.status) : ""}</div><div class="d">${lt ? `pukul ${lt.puncak24.waktu.slice(11, 16).replace(":", ".")} · batas rob ${fmt(lt.ambang.p90, 2)} m` : (V().laut?.laut?.alasan || "data belum tersedia")}</div></div>
     <div class="kpi"><div class="k">Peringatan & laporan</div><div class="v">${T ? "–" : `${pd} · ${lap}`}</div><div class="d">${T ? "tidak tersedia untuk simulasi" : "peringatan dini BMKG · laporan warga"}</div></div>`;
 }
 
 function renderMap(kec) {
   if (!window.L) { $("map").innerHTML = `<div class="empty">Peta tidak dapat dimuat.</div>`; return; }
   if (!map) {
-    map = L.map("map", { scrollWheelZoom: false }).setView([-6.22, 107.12], 10);
+    map = L.map("map", { scrollWheelZoom: false, zoomSnap: 0.25 }).setView([-6.22, 107.12], 10);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 16, attribution: "&copy; OpenStreetMap" }).addTo(map);
   }
   if (layer) layer.remove();
@@ -197,6 +222,12 @@ function renderMap(kec) {
   for (const s of V().sungai?.sungai || []) {
     const icon = L.divIcon({ className: "", html: `<div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:14px solid ${css("--water")}"></div>`, iconSize: [16, 14] });
     L.marker([s.lat, s.lon], { icon }).bindPopup(`<h3>${s.nama}</h3>${s.ok ? `${badge(statusSungai(s).status)}<br>Debit ${s.tanggal}: <b>${fmt(s.kini)} m³/s</b><br>Normal (median): ${fmt(s.ambang.p50)} m³/s<br>Batas waspada (P90): ${fmt(s.ambang.p90, 0)} m³/s` : "Data tidak tersedia"}`).addTo(layer);
+  }
+  const lt = lautKini() || V().laut?.laut;
+  if (lt) {
+    const icon = L.divIcon({ className: "", html: `<div class="laut-pin">≋</div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
+    const sl = lt.ok ? statusLaut(lt) : null;
+    L.marker([lt.lat, lt.lon], { icon }).bindTooltip("Titik pantau pasang laut").bindPopup(`<h3>${lt.nama}</h3>${sl ? `${badge(sl.status)}<br>Sekarang: <b>${fmt(lt.kini, 2)} m</b><br>Puncak ${V().tanggal ? "pada tanggal" : "24 jam"}: <b>${fmt(sl.nilai, 2)} m</b> pukul ${lt.puncak24.waktu.slice(11, 16)}<br>Batas rob (P90): ${fmt(lt.ambang.p90, 2)} m` : (lt.alasan || "Data tidak tersedia")}`).addTo(layer);
   }
   for (const r of laporanNyata()) {
     L.circleMarker([r.lat, r.lon], { radius: 6, color: "#0b3d66", weight: 2, fillColor: "#ffffff", fillOpacity: 1 })
@@ -308,6 +339,48 @@ function renderRivers() {
   }
 }
 
+function renderLaut() {
+  const lt = lautKini(), T = V().tanggal;
+  if (!lt) {
+    $("lautNums").innerHTML = "";
+    $("lautBox").innerHTML = `<div class="empty">${V().laut?.laut?.alasan || "Data pasang laut belum tersedia."}</div>`;
+    if (charts.laut) { charts.laut.destroy(); delete charts.laut; }
+    return;
+  }
+  if (!$("chartLaut")) $("lautBox").innerHTML = `<canvas id="chartLaut" aria-label="Grafik tinggi muka laut per jam"></canvas>`;
+  const sl = statusLaut(lt), a = lt.ambang, add = SIM.on ? SIM.laut : 0;
+  const depan = lt.harian.filter((h) => h.waktu >= lt.acuan);
+  const top = depan.reduce((x, y) => (y.tinggi > x.tinggi ? y : x), depan[0] || lt.puncak24);
+  const jam = (w) => w.slice(11, 16).replace(":", ".");
+  const tgl = (w) => new Date(w.slice(0, 10) + "T00:00:00").toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short" });
+  $("lautNums").innerHTML = `${badge(sl.status)}
+    <span>${T ? "awal tanggal" : "sekarang"} <b>${fmt((lt.kini ?? 0) + add, 2)}</b> m</span>
+    <span>puncak ${T ? "tanggal itu" : "24 jam"} <b>${fmt(sl.nilai, 2)}</b> m · ${jam(lt.puncak24.waktu)}</span>
+    <span>puncak 7 hari <b>${fmt(top.tinggi + add, 2)}</b> m · ${tgl(top.waktu)} ${jam(top.waktu)}</span>
+    <span class="sub">batas waspada ${fmt(a.p90, 2)} · siaga ${fmt(a.p95, 2)} · awas ${fmt(a.p99, 2)} m</span>`;
+  const iNow = lt.seri.findIndex((x) => x.setelah);
+  const garis = (v, lbl, col) => ({ label: lbl, data: lt.seri.map(() => v), borderColor: col, borderWidth: 1, borderDash: [4, 4], pointRadius: 0 });
+  if (charts.laut) charts.laut.destroy();
+  charts.laut = new Chart($("chartLaut"), {
+    type: "line",
+    data: {
+      labels: lt.seri.map((x) => x.waktu.slice(8, 10) + "/" + x.waktu.slice(5, 7) + " " + x.waktu.slice(11, 13) + ":00"),
+      datasets: [
+        { label: "Muka laut", data: lt.seri.map((x) => (x.tinggi == null ? null : x.tinggi + add)), borderColor: "#0f8b8d", backgroundColor: "rgba(15,139,141,.10)", fill: "origin", borderWidth: 2, tension: 0.3,
+          pointRadius: lt.seri.map((x, i) => (i === iNow - 1 ? 4 : 0)), segment: { borderDash: (c) => (iNow > 0 && c.p0DataIndex >= iNow - 1 ? [5, 4] : undefined) } },
+        garis(a.p90, "Batas waspada (P90)", css("--waspada")), garis(a.p95, "Batas siaga (P95)", css("--siaga")), garis(a.p99, "Batas awas (P99)", css("--awas")),
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${c.dataset.label}: ${fmt(c.raw, 2)} m${c.datasetIndex === 0 && iNow > 0 && c.dataIndex >= iNow ? (T ? " (sesudah tanggal)" : " (prakiraan)") : ""}` } } },
+      scales: { x: { grid: { color: (c) => (lt.seri[c.index]?.waktu.endsWith("T00:00") ? css("--line") : "transparent") },
+          ticks: { color: css("--muted"), autoSkip: false, maxRotation: 0, callback: (v, i) => { const w = lt.seri[i]?.waktu; return w?.endsWith("T12:00") ? tgl(w) : null; } } },
+        y: { suggestedMin: -0.2, suggestedMax: 1.45, grid: { color: css("--line") }, ticks: { color: css("--muted"), maxTicksLimit: 6, callback: (v) => fmt(v, 1) + " m" } } },
+    },
+  });
+}
+
 function renderAlerts() {
   const p = V().peringatan;
   if (V().tanggal) { $("pdSub").textContent = ""; $("alerts").innerHTML = `<div class="empty">Peringatan dini BMKG tidak tersedia untuk tanggal simulasi.</div>`; return; }
@@ -349,11 +422,11 @@ function renderTable(kec) {
   const T = V().tanggal;
   const rows = [...kec].sort((a, b) => b.skor - a.skor || (b.hujan || 0) - (a.hujan || 0) || a.nama.localeCompare(b.nama));
   $("tbl").innerHTML = `<thead><tr><th>#</th><th class="l">Kecamatan</th><th class="l">Status</th><th>Skor</th><th class="l">Faktor penyebab</th>
-    <th>${T ? "Hujan H-1 (mm)" : "Hujan 24j lalu (mm)"}</th><th>${T ? "Hujan hari-H (mm)" : "Prakiraan 24j Open-Meteo"}</th><th>Prakiraan 24j BMKG</th><th>Cuaca sekarang (BMKG)</th><th>Suhu</th><th>Elevasi (m)</th></tr></thead>
+    <th>${T ? "Hujan H-1 (mm)" : "Hujan 24j lalu (mm)"}</th><th>${T ? "Hujan hari-H (mm)" : "Prakiraan 24j Open-Meteo"}</th><th>Prakiraan 24j BMKG</th><th>Cuaca sekarang (BMKG)</th><th>Suhu</th><th>Elevasi (m)</th><th>${T ? "Pasang laut (m)" : "Pasang laut 24j (m)"}</th></tr></thead>
   <tbody>${rows.map((k, i) => `<tr data-id="${k.id}" class="${k.id === selKec ? "sel" : ""}"><td class="n">${i + 1}</td><td class="l nm">${k.nama}</td><td class="l">${badge(k.status)}</td><td>${k.skor}</td>
     <td class="l why">${k.alasan.length ? k.alasan.join(" · ") : "tidak ada faktor risiko"}</td>
     <td>${fmt(k.hujan24Lalu)}</td><td>${fmt(k.hujan24Depan)}</td><td>${fmt(k.hujan24DepanBmkg)}</td>
-    <td>${k.sekarang?.cuaca || "–"}</td><td>${k.sekarang ? k.sekarang.suhu + "°C" : "–"}</td><td>${k.elevasi ?? "–"}</td></tr>`).join("")}</tbody>`;
+    <td>${k.sekarang?.cuaca || "–"}</td><td>${k.sekarang ? k.sekarang.suhu + "°C" : "–"}</td><td>${k.elevasi ?? "–"}</td><td>${lautKini()?.kecamatan.includes(k.id) ? fmt(statusLaut(lautKini()).nilai, 2) : "–"}</td></tr>`).join("")}</tbody>`;
   $("tbl").querySelectorAll("tbody tr").forEach((tr) => tr.addEventListener("click", () => {
     pilih(tr.dataset.id);
     $("tbl").querySelectorAll("tr.sel").forEach((x) => x.classList.remove("sel"));
@@ -374,7 +447,7 @@ async function simTanggal(tgl) {
     if (!r.ok) throw new Error(j.error || r.status);
     SIMT = j;
     const jenis = j.selisihHari > 0 ? `prakiraan ${j.selisihHari} hari ke depan` : j.selisihHari === 0 ? "hari ini" : `${-j.selisihHari} hari yang lalu`;
-    $("simInfo").innerHTML = `<b>${tglID(tgl)}</b> · ${jenis} · hujan: ${j.sumberHujan} · sungai: model GloFAS`;
+    $("simInfo").innerHTML = `<b>${tglID(tgl)}</b> · ${jenis} · hujan: ${j.sumberHujan} · sungai: model GloFAS · laut: ${j.laut?.ok ? "model SMOC" : j.laut?.alasan || "tidak tersedia"}`;
   } catch (e) {
     SIMT = null;
     $("simInfo").textContent = "Gagal memuat simulasi: " + e.message;
@@ -404,14 +477,15 @@ function bindSim() {
     const v = b.dataset.d;
     simTanggal(v.startsWith("+") ? tambahHari(hariIni(), +v.slice(1)) : v);
   }));
-  const rain = $("simRain"), river = $("simRiver");
+  const rain = $("simRain"), river = $("simRiver"), laut = $("simLaut");
   const upd = () => {
-    SIM.rain = +rain.value; SIM.river = +river.value;
+    SIM.rain = +rain.value; SIM.river = +river.value; SIM.laut = +laut.value;
+    $("simLautV").textContent = fmt(SIM.laut, 2);
     $("simRainV").textContent = SIM.rain;
     $("simRiverV").textContent = fmt(SIM.river, 1);
     if (DATA.cuaca) render();
   };
-  [rain, river].forEach((el) => el.addEventListener("input", upd));
+  [rain, river, laut].forEach((el) => el.addEventListener("input", upd));
 }
 
 bindSim();
@@ -428,7 +502,7 @@ setInterval(load, 10 * 60 * 1000);
 
 /* ---------- Mode monitor (layar penuh untuk monitor besar) ---------- */
 const MON = { on: false, every: 2 * 60 * 1000, next: 0, fs: false, lock: null };
-const BATAS_PETA = () => (V().cuaca?.kecamatan || []).map((k) => [k.lat, k.lon]);
+const BATAS_PETA = () => [...(V().cuaca?.kecamatan || []), ...(V().sungai?.sungai || []), ...(V().laut?.laut ? [V().laut.laut] : [])].map((k) => [k.lat, k.lon]);
 
 async function kunciLayar(on) {
   try {

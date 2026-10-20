@@ -197,7 +197,7 @@ th { color: var(--ink-2); font-weight: 600; background: #f7f9fb; position: stick
 
 /* indikator */
 .ind-card { margin-bottom: 14px; }
-.inds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.inds { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
 .ind { border: 1px solid var(--line); border-top: 3px solid var(--water); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 3px; }
 .ind-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ind-n { font-weight: 700; font-size: 14px; color: var(--brand); }
@@ -213,6 +213,7 @@ th { color: var(--ink-2); font-weight: 600; background: #f7f9fb; position: stick
 .pill.sim { background: #e6effa; color: var(--brand-2); }
 .pill.off { background: #eef1f4; color: var(--muted); }
 .pill.fix { background: #eef1f4; color: var(--ink-2); }
+@media (max-width: 1280px) { .inds { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 860px) { .inds { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 520px) { .inds { grid-template-columns: 1fr; } }
 .rivers > .empty { grid-column: 1 / -1; }
@@ -263,3 +264,10 @@ body.monitor .river .rb { flex: 1; min-height: 110px; height: auto; }
   .mon-btn { display: none; }
 }
 body.monitor .river > .st, body.monitor .river > span { align-self: flex-start; }
+
+/* pasang laut */
+.laut-nums { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+.laut-nums b { color: var(--ink); font-size: 18px; font-variant-numeric: tabular-nums; }
+.laut-box { position: relative; height: 210px; }
+.laut-pin { width: 22px; height: 22px; border-radius: 6px; background: #0f8b8d; color: #fff; font-weight: 700; font-size: 15px; line-height: 22px; text-align: center; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.kpi .v .st { font-size: 11px; vertical-align: middle; margin-left: 4px; }

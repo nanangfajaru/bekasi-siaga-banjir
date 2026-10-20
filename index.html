@@ -56,12 +56,14 @@
         <button type="button" data-d="2020-01-01">1 Jan 2020</button>
         <button type="button" data-d="2021-02-20">20 Feb 2021</button>
         <button type="button" data-d="2025-03-04">4 Mar 2025</button>
+        <button type="button" data-d="2024-12-15">15 Des 2024 (rob)</button>
       </div>
       <div class="sim-info" id="simInfo"></div>
     </div>
     <div class="sim-ctl" id="simCtl" hidden>
       <label>Tambahan hujan <b id="simRainV">0</b> mm/hari <input type="range" id="simRain" min="0" max="200" step="10" value="0"></label>
       <label>Debit sungai <b id="simRiverV">1,0</b>× <input type="range" id="simRiver" min="1" max="15" step="0.5" value="1"></label>
+      <label>Tambahan muka laut <b id="simLautV">0,00</b> m <input type="range" id="simLaut" min="0" max="1" step="0.05" value="0"></label>
       <span class="sim-note">Data asli tidak berubah. Simulasi hanya untuk peragaan.</span>
     </div>
   </div>
@@ -82,13 +84,20 @@
         <div class="legend" id="mapLegend"></div>
       </div>
       <div id="map" role="img" aria-label="Peta status risiko banjir kecamatan di Kabupaten Bekasi"></div>
-      <p class="note">Titik = desa pantau BMKG di tiap kecamatan. Klik titik untuk detail. Segitiga biru = titik pantau sungai.</p>
+      <p class="note">Titik = desa pantau BMKG di tiap kecamatan. Klik titik untuk detail. Segitiga biru = titik pantau sungai. Kotak hijau-biru ≋ = titik pantau pasang laut.</p>
     </div>
     <div class="card river-card">
       <div class="card-h"><h2>Debit sungai</h2><span class="sub">model GloFAS · 14 hari sebelum + 7 hari sesudah</span></div>
       <div class="rivers" id="rivers"></div>
       <p class="note">Garis putus-putus = prakiraan. Garis abu = normal (median 2019–2026).</p>
     </div>
+  </section>
+
+  <section class="card laut-card">
+    <div class="card-h"><h2>Pasang laut pesisir utara (rob)</h2><span class="sub">tinggi muka laut per jam terhadap rata-rata muka laut · 2 hari sebelum + 7 hari sesudah · berlaku untuk Muaragembong, Tarumajaya, Babelan</span></div>
+    <div class="laut-nums" id="lautNums"></div>
+    <div class="laut-box" id="lautBox"><canvas id="chartLaut" aria-label="Grafik tinggi muka laut per jam"></canvas></div>
+    <p class="note">Garis putus-putus = prakiraan. Garis kuning/oranye/merah = batas waspada (P90), siaga (P95), awas (P99) dari puncak harian 2022–2026. Puncak tertinggi tercatat 14–17 Des 2024 (±1,37 m) saat rob besar di pesisir utara.</p>
   </section>
 
   <section class="grid-2 wide-left">
@@ -135,10 +144,11 @@
       <li><b>Peringatan dini BMKG</b> yang menyebut kecamatan tersebut: +2.</li>
       <li><b>Laporan banjir warga</b> di kecamatan tersebut: +2 jika dalam 24 jam, +1 jika dalam 7 hari.</li>
       <li><b>Sungai</b> yang melintasi kecamatan (Citarum atau Kali Bekasi): debit tertinggi hari itu s.d. 3 hari ke depan dibanding persentil debit harian 2019–2026: ≥P90 +1, ≥P95 +2, ≥P99 +3. Normal Citarum hilir ±239 m³/s (kapasitas ±1.100 m³/s), Kali Bekasi ±18 m³/s.</li>
+      <li><b>Pasang laut (rob)</b> untuk kecamatan pesisir (Muaragembong, Tarumajaya, Babelan): puncak muka laut 24 jam ke depan dibanding persentil puncak harian Nov 2022–2026: ≥P90 (1,20 m) +1, ≥P95 (1,26 m) +2, ≥P99 (1,34 m) +3.</li>
       <li><b>Dataran rendah</b> (elevasi ≤5 m) +1, hanya jika ada faktor lain.</li>
     </ul>
     <p class="status-key" id="statusKey"></p>
-    <p><b>Simulasi tanggal</b> memakai prakiraan Open-Meteo (s.d. 15 hari ke depan) atau arsip reanalisis ERA5 (sejak 2019) untuk hujan, dan model GloFAS untuk debit sungai. Peringatan dini BMKG dan laporan warga tidak ikut dihitung dalam simulasi. Data model global cenderung lebih rendah dari curah hujan lokal yang ekstrem, terutama untuk banjir kiriman dari hulu.</p>
+    <p><b>Simulasi tanggal</b> memakai prakiraan Open-Meteo (s.d. 15 hari ke depan) atau arsip reanalisis ERA5 (sejak 2019) untuk hujan, model GloFAS untuk debit sungai, dan model pasang surut SMOC untuk muka laut (tersedia sejak 23 Nov 2022 s.d. 8 hari ke depan). Peringatan dini BMKG dan laporan warga tidak ikut dihitung dalam simulasi. Data model global cenderung lebih rendah dari curah hujan lokal yang ekstrem, terutama untuk banjir kiriman dari hulu.</p>
     <p class="muted">Dashboard ini bersifat informatif untuk tugas Smart City dan bukan penetapan status bencana resmi. Status resmi ditetapkan oleh BPBD Kabupaten Bekasi.</p>
   </section>
 
@@ -146,7 +156,7 @@
     <h2>Sumber data (live)</h2>
     <ul class="src">
       <li><b>BMKG</b> – Prakiraan cuaca per desa (<code>api.bmkg.go.id/publik/prakiraan-cuaca</code>) dan peringatan dini cuaca (<code>bmkg.go.id/alerts/nowcast</code>). Sumber: BMKG.</li>
-      <li><b>Open-Meteo</b> – Curah hujan per jam dan elevasi (<code>api.open-meteo.com</code>), debit sungai model GloFAS (<code>flood-api.open-meteo.com</code>).</li>
+      <li><b>Open-Meteo</b> – Curah hujan per jam dan elevasi (<code>api.open-meteo.com</code>), debit sungai model GloFAS (<code>flood-api.open-meteo.com</code>), dan tinggi muka laut/pasang surut model SMOC (<code>marine-api.open-meteo.com</code>).</li>
       <li><b>PetaBencana.id</b> – Laporan banjir dari warga (<code>api.petabencana.id/reports</code>).</li>
     </ul>
     <p class="muted">Kode sumber: <a href="https://github.com/nanangfajaru/bekasi-siaga-banjir">github.com/nanangfajaru/bekasi-siaga-banjir</a></p>

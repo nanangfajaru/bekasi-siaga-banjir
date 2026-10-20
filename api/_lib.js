@@ -40,6 +40,39 @@ export const SUNGAI = [
     kecamatan: ["01", "02", "05", "06"] },
 ];
 
+// Titik pantau muka laut (pasang/rob) di Laut Jawa, utara pesisir Bekasi.
+// Model MeteoFrance SMOC via Open-Meteo Marine API (pasang surut + efek tekanan udara), data sejak 23 Nov 2022.
+// Ambang = persentil tinggi muka laut maksimum harian 23 Nov 2022 – 19 Okt 2026 (1.411 hari), acuan rata-rata muka laut.
+// Puncak tertinggi tercatat 14–17 Des 2024 (1,35–1,38 m), bersamaan dengan rob besar di pesisir utara Jakarta–Bekasi.
+export const LAUT = {
+  id: "laut", nama: "Pasang laut pesisir utara (Muaragembong–Tarumajaya)", lat: -5.958, lon: 106.958,
+  p50: 0.99, p90: 1.20, p95: 1.26, p99: 1.34, mulai: "2022-11-23",
+  kecamatan: ["01", "02", "17"],
+};
+
+// Ringkas deret muka laut per jam mulai index i (jam acuan): nilai kini, puncak 24 jam, dan puncak harian.
+export function ringkasLaut(t, v, i) {
+  const r1 = (x) => (x == null ? null : Math.round(x * 100) / 100);
+  let puncak = null;
+  for (let k = i; k < Math.min(v.length, i + 24); k++) if (v[k] != null && (!puncak || v[k] > puncak.tinggi)) puncak = { waktu: t[k], tinggi: v[k] };
+  const harian = {};
+  t.forEach((w, k) => {
+    if (v[k] == null) return;
+    const d = w.slice(0, 10);
+    if (!harian[d] || v[k] > harian[d].tinggi) harian[d] = { tanggal: d, waktu: w, tinggi: v[k] };
+  });
+  return {
+    id: LAUT.id, nama: LAUT.nama, lat: LAUT.lat, lon: LAUT.lon, kecamatan: LAUT.kecamatan,
+    ambang: { p50: LAUT.p50, p90: LAUT.p90, p95: LAUT.p95, p99: LAUT.p99 },
+    ok: puncak != null, satuan: "m", acuan: t[i], kini: r1(v[i]), puncak24: puncak,
+    harian: Object.values(harian),
+    seri: t.map((w, k) => ({ waktu: w, tinggi: v[k], setelah: k > i })),
+  };
+}
+
+export const marineUrl = (q) => `https://marine-api.open-meteo.com/v1/marine?latitude=${LAUT.lat}&longitude=${LAUT.lon}` +
+  `&hourly=sea_level_height_msl&timezone=Asia%2FJakarta&${q}`;
+
 // Ringkas deret debit harian di sekitar tanggal acuan (index i).
 export function ringkasSungai(s, d, i) {
   const v = d.river_discharge;
