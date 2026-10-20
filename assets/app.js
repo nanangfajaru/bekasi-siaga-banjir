@@ -117,7 +117,6 @@ function semua() {
 /* ---------- Render ---------- */
 function render() {
   const kec = semua();
-  renderDasar(kec);
   renderInd(kec);
   renderKPI(kec);
   renderMap(kec);
@@ -143,44 +142,6 @@ function akurasi(sel) {
   return { lv: "rendah", t: "Rendah", d: "prakiraan lebih dari 7 hari hanya gambaran kecenderungan; angka hujan per kecamatan bisa berubah jauh. Ulangi simulasi mendekati tanggalnya" };
 }
 
-function renderDasar(kec) {
-  const T = V().tanggal;
-  $("dasarSim").hidden = !T;
-  if (!T) return;
-  const k = akurasi(T.selisihHari), arsip = /ERA5/.test(T.sumberHujan);
-  const kena = (f) => kec.filter((x) => x.alasan.some(f));
-  const nama = (l) => (l.length > 4 ? `${l.slice(0, 4).map((x) => x.nama).join(", ")} +${l.length - 4} lainnya` : l.map((x) => x.nama).join(", "));
-  const pemicu = [], tidak = [];
-
-  const kh = kena((a) => a.startsWith("hujan"));
-  if (kh.length) {
-    const mx = kh.reduce((a, b) => (b.hujan > a.hujan ? b : a));
-    pemicu.push(["Curah hujan", `${fmt(mx.hujan, 0)} mm di ${nama(kh)}`, "batas 20 mm", arsip ? "arsip ERA5" : "prakiraan Open-Meteo"]);
-  } else tidak.push("hujan di bawah 20 mm");
-
-  const ks = kena((a) => a.includes("sungai"));
-  const sgTinggi = (V().sungai?.sungai || []).filter((x) => x.ok && statusSungai(x).poin > 0);
-  if (ks.length) pemicu.push(["Debit sungai", sgTinggi.map((x) => `${x.id === "citarum" ? "Citarum" : "Kali Bekasi"} ${fmt(statusSungai(x).nilai, 0)} m³/s`).join(", ") + ` → ${nama(ks)}`, "di atas P90", "GloFAS"]);
-  else tidak.push("sungai normal");
-
-  const lt = lautKini(), kl = kena((a) => a.includes("rob"));
-  if (kl.length) pemicu.push(["Pasang laut", `${fmt(statusLaut(lt).nilai, 2)} m → ${nama(kl)}`, "batas 1,20 m", "model SMOC"]);
-  else tidak.push(lt ? "pasang laut normal" : "pasang laut tidak tersedia");
-
-  const ke = kena((a) => a.startsWith("dataran rendah"));
-  if (ke.length) pemicu.push(["Dataran rendah", nama(ke), "+1 tambahan", "elevasi ≤5 m"]);
-  tidak.push("peringatan BMKG & laporan warga tidak dipakai");
-
-  const naik = kec.filter((x) => x.skor > 0);
-  const worst = kec.reduce((a, b) => (b.skor > a.skor ? b : a), kec[0]);
-  $("dasarSum").innerHTML = naik.length
-    ? `<span>Kenapa ${badge(worst.status)}?</span><span class="ds-t">${pemicu.filter((p) => p[0] !== "Dataran rendah").map((p) => `${p[0].toLowerCase()} ${p[1].split(" → ")[0].split(" di ")[0]}`).join(" · ")}</span><span class="ds-more">detail</span>`
-    : `<span>Kenapa ${badge("normal")}?</span><span class="ds-t">semua indikator di bawah batas</span><span class="ds-more">detail</span>`;
-  $("dasarBody").innerHTML = `
-    ${pemicu.length ? `<ul class="ds-list">${pemicu.map((p) => `<li><b>${p[0]}</b><span>${p[1]}</span><small>${p[2]} · ${p[3]}</small></li>`).join("")}</ul>` : ""}
-    <p class="ds-note">Tidak berpengaruh: ${tidak.join(" · ")}.</p>
-    <p class="ds-note"><span class="kd ${k.lv}">Akurasi ${k.t.toLowerCase()}</span> ${k.d}.</p>`;
-}
 
 function renderInd(kec) {
   const T = V().tanggal;
@@ -489,13 +450,15 @@ const tambahHari = (d, n) => new Date(Date.parse(d + "T00:00:00Z") + n * 864e5).
 async function simTanggal(tgl) {
   $("simDate").value = tgl;
   $("simInfo").textContent = "memuat…";
+  document.querySelectorAll(".chips button").forEach((b) => b.classList.toggle("on", tglChip(b.dataset.d) === tgl));
   try {
     const r = await fetch("api/simulasi?tanggal=" + tgl);
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || r.status);
     SIMT = j;
     const jenis = j.selisihHari > 0 ? `prakiraan ${j.selisihHari} hari ke depan` : j.selisihHari === 0 ? "hari ini" : `${-j.selisihHari} hari yang lalu`;
-    $("simInfo").innerHTML = `${jenis} <span class="kd ${akurasi(j.selisihHari).lv}">akurasi ${akurasi(j.selisihHari).t.toLowerCase()}</span>`;
+    const ak = akurasi(j.selisihHari);
+    $("simInfo").innerHTML = `<span class="kd ${ak.lv}" title="${jenis}: ${ak.d}">Akurasi ${ak.t.toLowerCase()}</span>`;
   } catch (e) {
     SIMT = null;
     $("simInfo").textContent = "Gagal memuat simulasi: " + e.message;
@@ -514,6 +477,8 @@ function setMode(m) {
   else render();
 }
 
+const tglChip = (v) => (v.startsWith("+") ? tambahHari(hariIni(), +v.slice(1)) : v);
+
 function bindSim() {
   const d = $("simDate");
   d.min = "2019-01-01";
@@ -521,12 +486,7 @@ function bindSim() {
   d.value = tambahHari(hariIni(), 1);
   d.addEventListener("change", () => d.value && simTanggal(d.value));
   document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-  $("simPreset").addEventListener("change", (e) => {
-    const v = e.target.value;
-    if (!v) return;
-    simTanggal(v.startsWith("+") ? tambahHari(hariIni(), +v.slice(1)) : v);
-    e.target.value = "";
-  });
+  document.querySelectorAll(".chips button").forEach((b) => b.addEventListener("click", () => simTanggal(tglChip(b.dataset.d))));
   const rain = $("simRain"), river = $("simRiver"), laut = $("simLaut");
   const upd = () => {
     SIM.rain = +rain.value; SIM.river = +river.value; SIM.laut = +laut.value;
