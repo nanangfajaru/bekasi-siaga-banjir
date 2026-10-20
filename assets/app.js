@@ -143,6 +143,7 @@ function akurasi(sel) {
 }
 
 
+let IND_OPEN = false;
 function renderInd(kec) {
   const T = V().tanggal;
   const pill = (cls, txt) => `<span class="pill ${cls}">${txt}</span>`;
@@ -158,9 +159,11 @@ function renderInd(kec) {
   const card = (o) => `<div class="ind">
       <div class="ind-top"><span class="ind-n">${o.n}</span>${o.pill}</div>
       <div class="ind-v">${o.v}</div><div class="ind-d">${o.d}</div>
-      <div class="ind-r"><b>Skor:</b> ${o.r}</div>
       <div class="ind-s"><b>Sumber:</b> ${o.s}</div>
-      ${T ? "" : `<div class="ind-u"><b>Pembaruan:</b> ${o.u}</div>`}</div>`;
+      <details class="ind-x"><summary>${T ? "Skor" : "Skor &amp; pembaruan"}</summary>
+        <div class="ind-r"><b>Skor:</b> ${o.r}</div>
+        ${T ? "" : `<div class="ind-u"><b>Pembaruan:</b> ${o.u}</div>`}
+      </details></div>`;
   $("inds").innerHTML = [
     { n: "Curah hujan", pill: st(!!DATA.cuaca), v: kec.length ? `${fmt(top.v)} <small>mm/hari</small>` : "–",
       d: kec.length ? `tertinggi di ${top.k.nama} (24 jam lalu / depan)` : "data belum tersedia",
@@ -189,6 +192,15 @@ function renderInd(kec) {
       s: "PetaBencana.id (laporan warga)",
       u: "langsung saat warga melapor · dashboard cek tiap 5 menit" },
   ].map(card).join("");
+  // buka/tutup semua panel "Skor & pembaruan" bersamaan agar tinggi kartu tetap seragam
+  document.querySelectorAll(".ind-x").forEach((d) => {
+    d.open = IND_OPEN;
+    d.addEventListener("toggle", () => {
+      if (d.open === IND_OPEN) return;
+      IND_OPEN = d.open;
+      document.querySelectorAll(".ind-x").forEach((x) => { x.open = IND_OPEN; });
+    });
+  });
 }
 
 function renderKPI(kec) {

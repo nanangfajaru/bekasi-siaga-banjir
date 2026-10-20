@@ -205,7 +205,7 @@ th { color: var(--ink-2); font-weight: 600; background: #f7f9fb; position: stick
 .ind-v small { font-size: 12px; font-weight: 500; color: var(--muted); }
 .ind-d { font-size: 12px; color: var(--muted); }
 .ind-r, .ind-s, .ind-u { font-size: 12px; color: var(--ink-2); line-height: 1.45; }
-.ind-r { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.ind-r { margin-top: 4px; }
 .ind-r b, .ind-s b, .ind-u b { color: var(--ink); font-weight: 600; }
 .pill { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
 .pill.ok { background: var(--normal-bg); color: #0a7a0a; }
@@ -293,4 +293,10 @@ html { scroll-padding-top: 120px; }
   .sim-tgl { flex-wrap: wrap; row-gap: 8px !important; }
   .sim-tgl .chips { order: 3; flex: 1 1 100%; }
 }
-.ind-u { margin-top: auto; padding-top: 6px; color: var(--muted); }
+.ind-u { margin-top: 4px; color: var(--ink-2); }
+.ind-s { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); min-height: calc(2.9em + 6px); }
+.ind-x { padding-top: 6px; }
+.ind-x > summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--brand-2); list-style: none; }
+.ind-x > summary::-webkit-details-marker { display: none; }
+.ind-x > summary::after { content: " ▾"; }
+.ind-x[open] > summary::after { content: " ▴"; }
