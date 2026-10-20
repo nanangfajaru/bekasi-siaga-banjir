@@ -6,7 +6,7 @@ Dashboard realtime risiko banjir 23 kecamatan di Kabupaten Bekasi. Tugas mata ku
 
 ## Isi dashboard
 
-- **Kartu indikator**: curah hujan, debit sungai, peringatan dini, laporan warga, dan ketinggian tanah, lengkap dengan nilai saat ini, cara masuk ke skor, dan sumber data live.
+- **Kartu indikator**: curah hujan, debit sungai, peringatan dini, dan laporan warga, lengkap dengan nilai saat ini, cara masuk ke skor, dan sumber data live.
 - **Status kabupaten dan per kecamatan** (Normal, Waspada, Siaga, Awas), dihitung otomatis dari data live.
 - **Peta risiko**, peringkat kecamatan, dan tabel semua kecamatan.
 - **Curah hujan per jam**: 24 jam terakhir dan 24 jam ke depan.

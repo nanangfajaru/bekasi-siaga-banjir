@@ -129,7 +129,6 @@ function renderInd(kec) {
   const sv = (id) => { const s = sg.find((x) => x.id === id); return s?.ok ? fmt(statusSungai(s).nilai, 0) : "–"; };
   const pd = V().peringatan?.bekasi?.length || 0;
   const lap = laporanNyata().filter((r) => r.wilayah === "Kabupaten Bekasi").length;
-  const rendah = kec.filter((k) => k.elevasi != null && k.elevasi <= 5).length;
   const card = (o) => `<div class="ind">
       <div class="ind-top"><span class="ind-n">${o.n}</span>${o.pill}</div>
       <div class="ind-v">${o.v}</div><div class="ind-d">${o.d}</div>
@@ -149,9 +148,6 @@ function renderInd(kec) {
     { n: "Laporan banjir warga", pill: T ? pill("off", "Tidak dipakai di simulasi") : st(!!DATA.laporan), v: T ? "–" : `${lap} <small>laporan</small>`,
       d: T ? "hanya ada untuk waktu sekarang" : "7 hari terakhir di Kab. Bekasi", r: "dalam 24 jam +2 · dalam 7 hari +1",
       s: "PetaBencana.id (laporan warga)" },
-    { n: "Ketinggian tanah", pill: kec.length ? pill("fix", "Data tetap") : pill("err", "Gagal dimuat"), v: `${rendah} <small>kecamatan ≤5 m</small>`,
-      d: "elevasi titik desa pantau (m dpl)", r: "≤5 m +1, hanya jika ada faktor lain",
-      s: "Open-Meteo Elevation (model ketinggian 90 m)" },
   ].map(card).join("");
 }
 
