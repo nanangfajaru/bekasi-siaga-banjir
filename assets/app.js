@@ -425,3 +425,66 @@ setInterval(load, 10 * 60 * 1000);
   if (!bar || !top || !("IntersectionObserver" in window)) return;
   new IntersectionObserver(([e]) => bar.classList.toggle("stuck", !e.isIntersecting)).observe(top);
 })();
+
+/* ---------- Mode monitor (layar penuh untuk monitor besar) ---------- */
+const MON = { on: false, every: 2 * 60 * 1000, next: 0, fs: false, lock: null };
+const BATAS_PETA = () => (V().cuaca?.kecamatan || []).map((k) => [k.lat, k.lon]);
+
+async function kunciLayar(on) {
+  try {
+    if (on && "wakeLock" in navigator) MON.lock = await navigator.wakeLock.request("screen");
+    else if (!on && MON.lock) { await MON.lock.release(); MON.lock = null; }
+  } catch (e) { /* tidak didukung */ }
+}
+
+function sesuaikanTampilan() {
+  if (map) {
+    map.invalidateSize();
+    const b = BATAS_PETA();
+    if (MON.on && b.length) map.fitBounds(b, { padding: [40, 40] });
+    else if (!MON.on) map.setView([-6.22, 107.12], 10);
+  }
+  Object.values(charts).forEach((c) => c.resize());
+}
+
+async function setMonitor(on) {
+  MON.on = on;
+  document.body.classList.toggle("monitor", on);
+  const url = new URL(location.href);
+  if (on) url.searchParams.set("monitor", "1"); else url.searchParams.delete("monitor");
+  history.replaceState(null, "", url);
+  if (on) {
+    if (MODE !== "live") setMode("live");
+    MON.next = Date.now() + MON.every;
+    load();
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+      try { await document.documentElement.requestFullscreen(); MON.fs = true; } catch (e) { MON.fs = false; }
+    }
+    kunciLayar(true);
+  } else {
+    if (document.fullscreenElement && document.exitFullscreen) { MON.fs = false; document.exitFullscreen().catch(() => {}); }
+    kunciLayar(false);
+  }
+  setTimeout(sesuaikanTampilan, 350);
+}
+
+$("monBtn").addEventListener("click", () => setMonitor(true));
+$("monExit").addEventListener("click", () => setMonitor(false));
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && MON.on && MON.fs) { MON.fs = false; setMonitor(false); }
+  else setTimeout(sesuaikanTampilan, 350);
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && MON.on && !document.fullscreenElement) setMonitor(false); });
+document.addEventListener("visibilitychange", () => { if (MON.on && document.visibilityState === "visible") kunciLayar(true); });
+
+setInterval(() => {
+  if (!MON.on) return;
+  $("monClock").textContent = new Date().toLocaleString("id-ID", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  $("monUpd").textContent = $("updated").textContent;
+  $("monDot").classList.toggle("err", $("liveDot").classList.contains("err"));
+  let sisa = MON.next - Date.now();
+  if (sisa <= 0) { MON.next = Date.now() + MON.every; sisa = MON.every; if (MODE === "live") load(); }
+  $("monNext").textContent = `${Math.floor(sisa / 60000)}:${String(Math.floor((sisa % 60000) / 1000)).padStart(2, "0")}`;
+}, 1000);
+
+if (new URLSearchParams(location.search).has("monitor")) setMonitor(true);

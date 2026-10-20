@@ -9,6 +9,15 @@
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
+<div class="monbar" id="monbar">
+  <div class="mb-t"><b>Bekasi Siaga Banjir</b><span>Monitoring realtime risiko banjir Kabupaten Bekasi</span></div>
+  <div class="mb-r">
+    <span class="dot" id="monDot"></span><b id="monClock">–</b>
+    <span>data <span id="monUpd">–</span></span>
+    <span>muat ulang dalam <b id="monNext">–</b></span>
+    <button type="button" id="monExit">Keluar</button>
+  </div>
+</div>
 <header class="top">
   <div class="wrap top-row">
     <div>
@@ -23,6 +32,7 @@
         <div class="live-v" id="updated">memuat…</div>
       </div>
       <button id="refresh" type="button">Muat ulang</button>
+      <button id="monBtn" type="button" class="mon-btn" title="Tampilan layar penuh untuk monitor besar, selalu live dan memuat ulang otomatis">⛶ Mode monitor</button>
     </div>
   </div>
 </header>

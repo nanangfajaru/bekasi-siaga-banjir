@@ -232,3 +232,34 @@ th { color: var(--ink-2); font-weight: 600; background: #f7f9fb; position: stick
 @media (max-width: 760px) {
   .simbar.stuck .sim-info { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* mode monitor */
+.mon-btn { background: transparent !important; color: #fff !important; border: 1px solid rgba(255,255,255,.55) !important; }
+.mon-btn:hover { background: rgba(255,255,255,.12) !important; }
+.monbar { display: none; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: linear-gradient(135deg, #0b3d66, #155e94 60%, #1b77b5); color: #fff; padding: 8px 20px; font-size: 14px; }
+.mb-t { display: flex; gap: 12px; align-items: baseline; }
+.mb-t b { font-size: 18px; }
+.mb-t span { opacity: .8; font-size: 13px; }
+.mb-r { display: flex; gap: 16px; align-items: center; font-variant-numeric: tabular-nums; }
+.mb-r > span { opacity: .9; }
+.mb-r button { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.5); border-radius: 8px; padding: 5px 12px; font: inherit; font-weight: 600; cursor: pointer; }
+body.monitor { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+body.monitor .monbar { display: flex; }
+body.monitor .top, body.monitor .simbar, body.monitor .foot,
+body.monitor main > section:not(.kpis):not(.map-row) { display: none !important; }
+body.monitor main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 14px 20px; }
+body.monitor .kpi .v { font-size: clamp(26px, 2.1vw, 46px); }
+body.monitor .kpi .k, body.monitor .kpi .d { font-size: clamp(12px, .75vw, 16px); }
+body.monitor .map-row { flex: 1; min-height: 0; }
+body.monitor .map-card, body.monitor .river-card { min-height: 0; display: flex; flex-direction: column; }
+body.monitor .map-card #map { flex: 1; min-height: 0; height: auto; }
+body.monitor .river-card .rivers { flex: 1; min-height: 0; grid-template-rows: 1fr 1fr; }
+body.monitor .river { display: flex; flex-direction: column; min-height: 0; }
+body.monitor .river .rb { flex: 1; min-height: 110px; height: auto; }
+@media (max-width: 860px) {
+  body.monitor { height: auto; overflow: auto; }
+  body.monitor .map-card #map { min-height: 360px; }
+  .mon-btn { display: none; }
+}
+body.monitor .river > .st, body.monitor .river > span { align-self: flex-start; }

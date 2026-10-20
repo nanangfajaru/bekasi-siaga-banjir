@@ -16,6 +16,7 @@ Dashboard realtime risiko banjir 23 kecamatan di Kabupaten Bekasi. Tugas mata ku
 - **Rekomendasi tindakan pemerintah daerah** yang berubah mengikuti status.
 - **Simulasi tanggal**: pilih tanggal s.d. 15 hari ke depan (prakiraan) atau sejak 2019 (arsip), termasuk putar ulang banjir 1 Jan 2020, 20 Feb 2021, dan 4 Mar 2025.
 - **Simulasi manual**: tambah hujan dan debit sungai dengan slider untuk peragaan.
+- **Mode monitor**: tombol layar penuh untuk monitor besar di ruang kendali. Menampilkan ringkasan status, peta, dan grafik sungai, selalu data live, dan memuat ulang otomatis setiap 2 menit. Bisa dibuka langsung lewat `?monitor=1`.
 
 ## Sumber data (semua gratis, tanpa API key)
 
