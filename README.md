@@ -16,7 +16,7 @@ Dashboard realtime risiko banjir 23 kecamatan di Kabupaten Bekasi. Tugas mata ku
 - **Peringatan dini cuaca BMKG** dan **laporan banjir warga**.
 - **Rekomendasi tindakan pemerintah daerah** yang berubah mengikuti status.
 - **Simulasi tanggal**: pilih tanggal s.d. 15 hari ke depan (prakiraan) atau sejak 2019 (arsip), termasuk putar ulang banjir 1 Jan 2020, 20 Feb 2021, 4 Mar 2025, dan rob 15 Des 2024.
-- **Simulasi manual**: tambah hujan dan debit sungai dengan slider untuk peragaan.
+- **Simulasi manual**: tambah hujan, debit sungai, dan muka laut dengan slider untuk peragaan.
 - **Mode monitor**: tombol layar penuh untuk monitor besar di ruang kendali. Menampilkan ringkasan status, peta, dan grafik sungai, selalu data live, dan memuat ulang otomatis setiap 2 menit. Bisa dibuka langsung lewat `?monitor=1`.
 
 ## Sumber data (semua gratis, tanpa API key)
@@ -38,7 +38,7 @@ Dashboard realtime risiko banjir 23 kecamatan di Kabupaten Bekasi. Tugas mata ku
 | `api/cuaca.js` | Mengambil BMKG (23 desa pantau) dan Open-Meteo |
 | `api/sungai.js` | Debit sungai dari Open-Meteo Flood API |
 | `api/laporan.js` | Laporan banjir PetaBencana.id, difilter untuk Bekasi |
-| `api/simulasi.js` | Data hujan & sungai untuk tanggal pilihan |
+| `api/simulasi.js` | Data hujan, sungai, dan muka laut untuk tanggal pilihan |
 | `api/laut.js` | Tinggi muka laut (pasang/rob) dari Open-Meteo Marine API |
 | `api/peringatan.js` | Peringatan dini BMKG, dicocokkan dengan nama kecamatan |
 | `api/_lib.js` | Daftar kecamatan (kode desa BMKG, koordinat) dan titik sungai |
