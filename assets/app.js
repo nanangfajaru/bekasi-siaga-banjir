@@ -101,6 +101,7 @@ function semua() {
 /* ---------- Render ---------- */
 function render() {
   const kec = semua();
+  renderInd(kec);
   renderKPI(kec);
   renderMap(kec);
   renderRank(kec);
@@ -114,6 +115,44 @@ function render() {
   renderTable(kec);
   $("statusKey").innerHTML = `Skor 0 ${badge("normal")} · 1–2 ${badge("waspada")} · 3–4 ${badge("siaga")} · ≥5 ${badge("awas")}`;
   $("mapLegend").innerHTML = STATUS.map(badge).join("");
+}
+
+function renderInd(kec) {
+  const T = V().tanggal;
+  const pill = (cls, txt) => `<span class="pill ${cls}">${txt}</span>`;
+  const st = (ok) => T ? pill("sim", "Simulasi") : ok ? pill("ok", "Live") : pill("err", "Gagal dimuat");
+  const add = SIM.on ? SIM.rain : 0;
+  const hj = kec.map((k) => ({ k, v: Math.max(k.hujan24Lalu || 0, k.hujan24Depan || 0, k.hujan24DepanBmkg || 0) + add }));
+  const top = hj.reduce((a, b) => (b.v > a.v ? b : a), hj[0] || { v: 0 });
+  const nBmkg = kec.filter((k) => k.bmkgOk).length;
+  const sg = V().sungai?.sungai || [];
+  const sv = (id) => { const s = sg.find((x) => x.id === id); return s?.ok ? fmt(statusSungai(s).nilai, 0) : "–"; };
+  const pd = V().peringatan?.bekasi?.length || 0;
+  const lap = laporanNyata().filter((r) => r.wilayah === "Kabupaten Bekasi").length;
+  const rendah = kec.filter((k) => k.elevasi != null && k.elevasi <= 5).length;
+  const card = (o) => `<div class="ind">
+      <div class="ind-top"><span class="ind-n">${o.n}</span>${o.pill}</div>
+      <div class="ind-v">${o.v}</div><div class="ind-d">${o.d}</div>
+      <div class="ind-r"><b>Skor:</b> ${o.r}</div>
+      <div class="ind-s"><b>Sumber:</b> ${o.s}</div></div>`;
+  $("inds").innerHTML = [
+    { n: "Curah hujan", pill: st(!!DATA.cuaca), v: kec.length ? `${fmt(top.v)} <small>mm/hari</small>` : "–",
+      d: kec.length ? `tertinggi di ${top.k.nama} (24 jam lalu / depan)` : "data belum tersedia",
+      r: "≥20 mm +1 · ≥50 +2 · ≥100 +3 · ≥150 +4",
+      s: T ? `${T.sumberHujan}, per jam` : `Open-Meteo (hujan per jam) dan BMKG prakiraan 3-jaman (${nBmkg}/23 desa)` },
+    { n: "Debit sungai", pill: st(sg.some((s) => s.ok)), v: `${sv("citarum")} <small>·</small> ${sv("kali-bekasi")} <small>m³/s</small>`,
+      d: "Citarum hilir · Kali Bekasi", r: "dibanding debit historis: ≥P90 +1 · ≥P95 +2 · ≥P99 +3",
+      s: "Model GloFAS (Open-Meteo Flood API), harian" },
+    { n: "Peringatan dini cuaca", pill: T ? pill("off", "Tidak dipakai di simulasi") : st(!!DATA.peringatan), v: T ? "–" : `${pd} <small>aktif</small>`,
+      d: T ? "hanya ada untuk waktu sekarang" : "yang menyebut kecamatan di Kab. Bekasi", r: "kecamatan disebut +2",
+      s: "BMKG Nowcast (RSS peringatan dini)" },
+    { n: "Laporan banjir warga", pill: T ? pill("off", "Tidak dipakai di simulasi") : st(!!DATA.laporan), v: T ? "–" : `${lap} <small>laporan</small>`,
+      d: T ? "hanya ada untuk waktu sekarang" : "7 hari terakhir di Kab. Bekasi", r: "dalam 24 jam +2 · dalam 7 hari +1",
+      s: "PetaBencana.id (laporan warga)" },
+    { n: "Ketinggian tanah", pill: kec.length ? pill("fix", "Data tetap") : pill("err", "Gagal dimuat"), v: `${rendah} <small>kecamatan ≤5 m</small>`,
+      d: "elevasi titik desa pantau (m dpl)", r: "≤5 m +1, hanya jika ada faktor lain",
+      s: "Open-Meteo Elevation (model ketinggian 90 m)" },
+  ].map(card).join("");
 }
 
 function renderKPI(kec) {
