@@ -211,3 +211,19 @@ th { color: var(--ink-2); font-weight: 600; background: #f7f9fb; position: stick
 @media (max-width: 860px) { .inds { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 520px) { .inds { grid-template-columns: 1fr; } }
 .rivers > .empty { grid-column: 1 / -1; }
+
+/* bar mode tetap di atas saat scroll */
+.simbar { position: sticky; top: 0; z-index: 1100; transition: box-shadow .2s; }
+.simbar.stuck { box-shadow: 0 4px 14px rgba(15, 27, 42, .12); }
+.simbar.stuck .sim-row { padding-top: 8px; padding-bottom: 8px; }
+@media (max-width: 760px) {
+  .sim-row { gap: 10px; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chips button, .chips-l { flex: 0 0 auto; white-space: nowrap; }
+  .sim-note { display: none; }
+}
+.sim-tgl, .chips { min-width: 0; max-width: 100%; }
+@media (max-width: 760px) {
+  .simbar.stuck .sim-info { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}

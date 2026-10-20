@@ -415,3 +415,10 @@ bindSim();
 $("refresh").addEventListener("click", () => (MODE === "tanggal" ? simTanggal($("simDate").value) : load()));
 load();
 setInterval(load, 10 * 60 * 1000);
+
+// Bayangan pada bar mode saat menempel di atas
+(() => {
+  const bar = $("simbar"), top = document.querySelector(".top");
+  if (!bar || !top || !("IntersectionObserver" in window)) return;
+  new IntersectionObserver(([e]) => bar.classList.toggle("stuck", !e.isIntersecting)).observe(top);
+})();
