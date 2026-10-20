@@ -135,9 +135,9 @@ function render() {
   if (map) requestAnimationFrame(() => map.invalidateSize());
 }
 
-// Panel "Dasar data simulasi": data apa yang dipakai, sumbernya, keandalannya, dan alasan status.
-function keandalan(sel) {
-  if (sel < 0) return { lv: "tinggi", t: "Data historis", d: "hasil model ulang (reanalisis) dari pengamatan, bukan prakiraan" };
+// Panel "Dasar data simulasi": pemicu status, sumber, dan tingkat akurasi data.
+function akurasi(sel) {
+  if (sel < 0) return { lv: "tinggi", t: "Tinggi", d: "data historis hasil rekonstruksi dari pengamatan, bukan prakiraan" };
   if (sel <= 3) return { lv: "tinggi", t: "Tinggi", d: "prakiraan 0–3 hari umumnya cukup akurat untuk waktu dan wilayah hujan" };
   if (sel <= 7) return { lv: "sedang", t: "Sedang", d: "prakiraan 4–7 hari: pola hujan cukup terbaca, jumlah dan lokasi pastinya bisa bergeser" };
   return { lv: "rendah", t: "Rendah", d: "prakiraan lebih dari 7 hari hanya gambaran kecenderungan; angka hujan per kecamatan bisa berubah jauh. Ulangi simulasi mendekati tanggalnya" };
@@ -147,7 +147,7 @@ function renderDasar(kec) {
   const T = V().tanggal;
   $("dasarSim").hidden = !T;
   if (!T) return;
-  const k = keandalan(T.selisihHari), arsip = /ERA5/.test(T.sumberHujan);
+  const k = akurasi(T.selisihHari), arsip = /ERA5/.test(T.sumberHujan);
   const kena = (f) => kec.filter((x) => x.alasan.some(f));
   const nama = (l) => (l.length > 4 ? `${l.slice(0, 4).map((x) => x.nama).join(", ")} +${l.length - 4} lainnya` : l.map((x) => x.nama).join(", "));
   const pemicu = [], tidak = [];
@@ -179,7 +179,7 @@ function renderDasar(kec) {
   $("dasarBody").innerHTML = `
     ${pemicu.length ? `<ul class="ds-list">${pemicu.map((p) => `<li><b>${p[0]}</b><span>${p[1]}</span><small>${p[2]} · ${p[3]}</small></li>`).join("")}</ul>` : ""}
     <p class="ds-note">Tidak berpengaruh: ${tidak.join(" · ")}.</p>
-    <p class="ds-note"><span class="kd ${k.lv}">Keandalan ${k.t.toLowerCase()}</span> ${k.d}.</p>`;
+    <p class="ds-note"><span class="kd ${k.lv}">Akurasi ${k.t.toLowerCase()}</span> ${k.d}.</p>`;
 }
 
 function renderInd(kec) {
@@ -495,7 +495,7 @@ async function simTanggal(tgl) {
     if (!r.ok) throw new Error(j.error || r.status);
     SIMT = j;
     const jenis = j.selisihHari > 0 ? `prakiraan ${j.selisihHari} hari ke depan` : j.selisihHari === 0 ? "hari ini" : `${-j.selisihHari} hari yang lalu`;
-    $("simInfo").innerHTML = `${jenis} <span class="kd ${keandalan(j.selisihHari).lv}">keandalan ${keandalan(j.selisihHari).t.toLowerCase()}</span>`;
+    $("simInfo").innerHTML = `${jenis} <span class="kd ${akurasi(j.selisihHari).lv}">akurasi ${akurasi(j.selisihHari).t.toLowerCase()}</span>`;
   } catch (e) {
     SIMT = null;
     $("simInfo").textContent = "Gagal memuat simulasi: " + e.message;
