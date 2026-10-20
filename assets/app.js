@@ -117,6 +117,7 @@ function semua() {
 /* ---------- Render ---------- */
 function render() {
   const kec = semua();
+  renderDasar(kec);
   renderInd(kec);
   renderKPI(kec);
   renderMap(kec);
@@ -132,6 +133,53 @@ function render() {
   $("statusKey").innerHTML = `Skor 0 ${badge("normal")} · 1–2 ${badge("waspada")} · 3–4 ${badge("siaga")} · ≥5 ${badge("awas")}`;
   $("mapLegend").innerHTML = STATUS.map(badge).join("");
   if (map) requestAnimationFrame(() => map.invalidateSize());
+}
+
+// Panel "Dasar data simulasi": data apa yang dipakai, sumbernya, keandalannya, dan alasan status.
+function keandalan(sel) {
+  if (sel < 0) return { lv: "tinggi", t: "Data historis", d: "hasil model ulang (reanalisis) dari pengamatan, bukan prakiraan" };
+  if (sel <= 3) return { lv: "tinggi", t: "Tinggi", d: "prakiraan 0–3 hari umumnya cukup akurat untuk waktu dan wilayah hujan" };
+  if (sel <= 7) return { lv: "sedang", t: "Sedang", d: "prakiraan 4–7 hari: pola hujan cukup terbaca, jumlah dan lokasi pastinya bisa bergeser" };
+  return { lv: "rendah", t: "Rendah", d: "prakiraan lebih dari 7 hari hanya gambaran kecenderungan; angka hujan per kecamatan bisa berubah jauh. Ulangi simulasi mendekati tanggalnya" };
+}
+
+function renderDasar(kec) {
+  const T = V().tanggal;
+  $("dasarSim").hidden = !T;
+  if (!T) return;
+  const sel = T.selisihHari, arsip = /ERA5/.test(T.sumberHujan), k = keandalan(sel);
+  $("dasarSub").textContent = `${tglID(T.tanggal)} · ${sel > 0 ? `prakiraan ${sel} hari ke depan` : sel === 0 ? "hari ini" : `${-sel} hari yang lalu`}`;
+  $("dasarTop").innerHTML = `<span class="kd ${k.lv}">Keandalan: ${k.t}</span><span>${k.d}.</span>`;
+
+  const top = kec.reduce((a, b) => (b.hujan > a.hujan ? b : a), kec[0]);
+  const topLalu = kec.reduce((a, b) => ((b.hujan24Lalu || 0) > (a.hujan24Lalu || 0) ? b : a), kec[0]);
+  const sg = (V().sungai?.sungai || []).filter((x) => x.ok);
+  const lt = lautKini();
+  const nKec = (f) => kec.filter(f).length;
+  const rowsHtml = [
+    ["Curah hujan", `Hujan per jam di 23 desa pantau: sehari sebelum (H-1) dan pada tanggal itu`,
+      arsip ? "ERA5, reanalisis cuaca ECMWF via Open-Meteo Archive (±25 km)" : `${T.sumberHujan}: gabungan model cuaca global (ECMWF, GFS, dll) via Open-Meteo (±10–25 km)`,
+      `${fmt(top.hujan)} mm di ${top.nama} (H-1 tertinggi ${fmt(topLalu.hujan24Lalu)} mm di ${topLalu.nama})`,
+      `${nKec((x) => x.alasan.some((a) => a.startsWith("hujan")))} kecamatan dapat skor hujan`],
+    ["Debit sungai", "Debit harian Citarum hilir dan Kali Bekasi, tanggal itu s.d. 3 hari sesudahnya",
+      sel < 0 ? "GloFAS (Copernicus), simulasi model hidrologi historis via Open-Meteo Flood API" : "GloFAS (Copernicus), prakiraan model hidrologi via Open-Meteo Flood API",
+      sg.length ? sg.map((x) => `${x.id === "citarum" ? "Citarum" : "Kali Bekasi"} ${fmt(statusSungai(x).nilai, 0)} m³/s (${LABEL[statusSungai(x).status]})`).join(" · ") : "tidak tersedia",
+      `${nKec((x) => x.alasan.some((a) => a.includes("sungai")))} kecamatan dapat skor sungai`],
+    ["Pasang laut (rob)", "Tinggi muka laut per jam di pesisir utara, puncak pada tanggal itu",
+      lt ? "Model pasang surut SMOC (Mercator/Météo-France) via Open-Meteo Marine" : "—",
+      lt ? `${fmt(statusLaut(lt).nilai, 2)} m pukul ${lt.puncak24.waktu.slice(11, 16).replace(":", ".")} (${LABEL[statusLaut(lt).status]})` : (V().laut?.laut?.alasan || "tidak tersedia"),
+      lt ? `${nKec((x) => x.alasan.some((a) => a.includes("rob")))} kecamatan pesisir dapat skor` : "tidak dihitung"],
+    ["Ketinggian tanah", "Elevasi titik desa pantau (data tetap)", "Open-Meteo Elevation (model ketinggian 90 m)",
+      `${nKec((x) => x.elevasi != null && x.elevasi <= 5)} kecamatan ≤5 m`, "+1 hanya jika ada faktor lain"],
+    ["Peringatan dini & laporan warga", "Tidak dipakai", "BMKG Nowcast dan PetaBencana.id hanya ada untuk waktu sekarang", "—", "tidak dihitung dalam simulasi"],
+  ];
+  $("dasarTbl").innerHTML = `<colgroup><col style="width:15%"><col style="width:25%"><col style="width:25%"><col style="width:20%"><col style="width:15%"></colgroup><thead><tr><th class="l">Indikator</th><th class="l">Data yang dipakai</th><th class="l">Sumber</th><th class="l">Nilai pada tanggal itu</th><th class="l">Pengaruh ke status</th></tr></thead>
+    <tbody>${rowsHtml.map((r) => `<tr><td class="l nm">${r[0]}</td>${r.slice(1).map((c, i) => `<td class="l wrap" data-l="${["Data yang dipakai", "Sumber", "Nilai pada tanggal itu", "Pengaruh ke status"][i]}">${c}</td>`).join("")}</tr>`).join("")}</tbody>`;
+
+  const naik = [...kec].filter((x) => x.skor > 0).sort((a, b) => b.skor - a.skor);
+  $("dasarWhy").innerHTML = naik.length
+    ? `<b>Kenapa statusnya begini:</b> <ul>${naik.slice(0, 8).map((x) => `<li>${badge(x.status)} <b>${x.nama}</b> skor ${x.skor}: ${x.alasan.join(", ")}</li>`).join("")}${naik.length > 8 ? `<li>…dan ${naik.length - 8} kecamatan lain (lihat tabel di bawah)</li>` : ""}</ul>`
+    : `<b>Kenapa statusnya begini:</b> semua indikator di bawah batas, jadi seluruh kecamatan Normal.`;
 }
 
 function renderInd(kec) {
@@ -447,7 +495,7 @@ async function simTanggal(tgl) {
     if (!r.ok) throw new Error(j.error || r.status);
     SIMT = j;
     const jenis = j.selisihHari > 0 ? `prakiraan ${j.selisihHari} hari ke depan` : j.selisihHari === 0 ? "hari ini" : `${-j.selisihHari} hari yang lalu`;
-    $("simInfo").innerHTML = `<b>${tglID(tgl)}</b> · ${jenis} · hujan: ${j.sumberHujan} · sungai: model GloFAS · laut: ${j.laut?.ok ? "model SMOC" : j.laut?.alasan || "tidak tersedia"}`;
+    $("simInfo").innerHTML = `<b>${tglID(tgl)}</b> · ${jenis} · <a href="#dasarSim">lihat dasar data simulasi</a>`;
   } catch (e) {
     SIMT = null;
     $("simInfo").textContent = "Gagal memuat simulasi: " + e.message;
