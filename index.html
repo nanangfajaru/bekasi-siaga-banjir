@@ -45,20 +45,23 @@
       <button type="button" data-mode="manual" aria-pressed="false">Simulasi manual</button>
     </div>
     <div class="sim-tgl" id="simTgl" hidden>
-      <label>Tanggal <input type="date" id="simDate"></label>
-      <div class="chips">
-        <span class="chips-l">Prakiraan:</span>
-        <button type="button" data-d="+1">Besok</button>
-        <button type="button" data-d="+3">3 hari lagi</button>
-        <button type="button" data-d="+7">7 hari lagi</button>
-        <button type="button" data-d="+14">14 hari lagi</button>
-        <span class="chips-l">Putar ulang banjir:</span>
-        <button type="button" data-d="2020-01-01">1 Jan 2020</button>
-        <button type="button" data-d="2021-02-20">20 Feb 2021</button>
-        <button type="button" data-d="2025-03-04">4 Mar 2025</button>
-        <button type="button" data-d="2024-12-15">15 Des 2024 (rob)</button>
-      </div>
-      <div class="sim-info" id="simInfo"></div>
+      <input type="date" id="simDate" aria-label="Tanggal simulasi">
+      <select id="simPreset" aria-label="Pilihan tanggal cepat">
+        <option value="">Pilih cepat…</option>
+        <optgroup label="Prakiraan">
+          <option value="+1">Besok</option>
+          <option value="+3">3 hari lagi</option>
+          <option value="+7">7 hari lagi</option>
+          <option value="+14">14 hari lagi</option>
+        </optgroup>
+        <optgroup label="Putar ulang banjir">
+          <option value="2020-01-01">1 Jan 2020</option>
+          <option value="2021-02-20">20 Feb 2021</option>
+          <option value="2024-12-15">15 Des 2024 (rob)</option>
+          <option value="2025-03-04">4 Mar 2025</option>
+        </optgroup>
+      </select>
+      <span class="sim-info" id="simInfo"></span>
     </div>
     <div class="sim-ctl" id="simCtl" hidden>
       <label>Tambahan hujan <b id="simRainV">0</b> mm/hari <input type="range" id="simRain" min="0" max="200" step="10" value="0"></label>
@@ -70,12 +73,10 @@
 </div>
 
 <main class="wrap">
-  <section class="card dasar-card" id="dasarSim" hidden>
-    <div class="card-h"><h2>Dasar data simulasi</h2><span class="sub" id="dasarSub"></span></div>
-    <div class="dasar-top" id="dasarTop"></div>
-    <div class="table-wrap"><table class="dasar-tbl" id="dasarTbl"></table></div>
-    <div class="dasar-why" id="dasarWhy"></div>
-  </section>
+  <details class="card dasar-card" id="dasarSim" hidden>
+    <summary id="dasarSum"></summary>
+    <div class="dasar-body" id="dasarBody"></div>
+  </details>
 
   <section class="card ind-card">
     <div class="card-h"><h2>Indikator yang dipantau</h2><span class="sub">nilai saat ini · cara masuk ke skor · sumber data live</span></div>

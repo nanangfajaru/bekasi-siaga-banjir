@@ -147,39 +147,39 @@ function renderDasar(kec) {
   const T = V().tanggal;
   $("dasarSim").hidden = !T;
   if (!T) return;
-  const sel = T.selisihHari, arsip = /ERA5/.test(T.sumberHujan), k = keandalan(sel);
-  $("dasarSub").textContent = `${tglID(T.tanggal)} · ${sel > 0 ? `prakiraan ${sel} hari ke depan` : sel === 0 ? "hari ini" : `${-sel} hari yang lalu`}`;
-  $("dasarTop").innerHTML = `<span class="kd ${k.lv}">Keandalan: ${k.t}</span><span>${k.d}.</span>`;
+  const k = keandalan(T.selisihHari), arsip = /ERA5/.test(T.sumberHujan);
+  const kena = (f) => kec.filter((x) => x.alasan.some(f));
+  const nama = (l) => (l.length > 4 ? `${l.slice(0, 4).map((x) => x.nama).join(", ")} +${l.length - 4} lainnya` : l.map((x) => x.nama).join(", "));
+  const pemicu = [], tidak = [];
 
-  const top = kec.reduce((a, b) => (b.hujan > a.hujan ? b : a), kec[0]);
-  const topLalu = kec.reduce((a, b) => ((b.hujan24Lalu || 0) > (a.hujan24Lalu || 0) ? b : a), kec[0]);
-  const sg = (V().sungai?.sungai || []).filter((x) => x.ok);
-  const lt = lautKini();
-  const nKec = (f) => kec.filter(f).length;
-  const rowsHtml = [
-    ["Curah hujan", `Hujan per jam di 23 desa pantau: sehari sebelum (H-1) dan pada tanggal itu`,
-      arsip ? "ERA5, reanalisis cuaca ECMWF via Open-Meteo Archive (±25 km)" : `${T.sumberHujan}: gabungan model cuaca global (ECMWF, GFS, dll) via Open-Meteo (±10–25 km)`,
-      `${fmt(top.hujan)} mm di ${top.nama} (H-1 tertinggi ${fmt(topLalu.hujan24Lalu)} mm di ${topLalu.nama})`,
-      `${nKec((x) => x.alasan.some((a) => a.startsWith("hujan")))} kecamatan dapat skor hujan`],
-    ["Debit sungai", "Debit harian Citarum hilir dan Kali Bekasi, tanggal itu s.d. 3 hari sesudahnya",
-      sel < 0 ? "GloFAS (Copernicus), simulasi model hidrologi historis via Open-Meteo Flood API" : "GloFAS (Copernicus), prakiraan model hidrologi via Open-Meteo Flood API",
-      sg.length ? sg.map((x) => `${x.id === "citarum" ? "Citarum" : "Kali Bekasi"} ${fmt(statusSungai(x).nilai, 0)} m³/s (${LABEL[statusSungai(x).status]})`).join(" · ") : "tidak tersedia",
-      `${nKec((x) => x.alasan.some((a) => a.includes("sungai")))} kecamatan dapat skor sungai`],
-    ["Pasang laut (rob)", "Tinggi muka laut per jam di pesisir utara, puncak pada tanggal itu",
-      lt ? "Model pasang surut SMOC (Mercator/Météo-France) via Open-Meteo Marine" : "—",
-      lt ? `${fmt(statusLaut(lt).nilai, 2)} m pukul ${lt.puncak24.waktu.slice(11, 16).replace(":", ".")} (${LABEL[statusLaut(lt).status]})` : (V().laut?.laut?.alasan || "tidak tersedia"),
-      lt ? `${nKec((x) => x.alasan.some((a) => a.includes("rob")))} kecamatan pesisir dapat skor` : "tidak dihitung"],
-    ["Ketinggian tanah", "Elevasi titik desa pantau (data tetap)", "Open-Meteo Elevation (model ketinggian 90 m)",
-      `${nKec((x) => x.elevasi != null && x.elevasi <= 5)} kecamatan ≤5 m`, "+1 hanya jika ada faktor lain"],
-    ["Peringatan dini & laporan warga", "Tidak dipakai", "BMKG Nowcast dan PetaBencana.id hanya ada untuk waktu sekarang", "—", "tidak dihitung dalam simulasi"],
-  ];
-  $("dasarTbl").innerHTML = `<colgroup><col style="width:15%"><col style="width:25%"><col style="width:25%"><col style="width:20%"><col style="width:15%"></colgroup><thead><tr><th class="l">Indikator</th><th class="l">Data yang dipakai</th><th class="l">Sumber</th><th class="l">Nilai pada tanggal itu</th><th class="l">Pengaruh ke status</th></tr></thead>
-    <tbody>${rowsHtml.map((r) => `<tr><td class="l nm">${r[0]}</td>${r.slice(1).map((c, i) => `<td class="l wrap" data-l="${["Data yang dipakai", "Sumber", "Nilai pada tanggal itu", "Pengaruh ke status"][i]}">${c}</td>`).join("")}</tr>`).join("")}</tbody>`;
+  const kh = kena((a) => a.startsWith("hujan"));
+  if (kh.length) {
+    const mx = kh.reduce((a, b) => (b.hujan > a.hujan ? b : a));
+    pemicu.push(["Curah hujan", `${fmt(mx.hujan, 0)} mm di ${nama(kh)}`, "batas 20 mm", arsip ? "arsip ERA5" : "prakiraan Open-Meteo"]);
+  } else tidak.push("hujan di bawah 20 mm");
 
-  const naik = [...kec].filter((x) => x.skor > 0).sort((a, b) => b.skor - a.skor);
-  $("dasarWhy").innerHTML = naik.length
-    ? `<b>Kenapa statusnya begini:</b> <ul>${naik.slice(0, 8).map((x) => `<li>${badge(x.status)} <b>${x.nama}</b> skor ${x.skor}: ${x.alasan.join(", ")}</li>`).join("")}${naik.length > 8 ? `<li>…dan ${naik.length - 8} kecamatan lain (lihat tabel di bawah)</li>` : ""}</ul>`
-    : `<b>Kenapa statusnya begini:</b> semua indikator di bawah batas, jadi seluruh kecamatan Normal.`;
+  const ks = kena((a) => a.includes("sungai"));
+  const sgTinggi = (V().sungai?.sungai || []).filter((x) => x.ok && statusSungai(x).poin > 0);
+  if (ks.length) pemicu.push(["Debit sungai", sgTinggi.map((x) => `${x.id === "citarum" ? "Citarum" : "Kali Bekasi"} ${fmt(statusSungai(x).nilai, 0)} m³/s`).join(", ") + ` → ${nama(ks)}`, "di atas P90", "GloFAS"]);
+  else tidak.push("sungai normal");
+
+  const lt = lautKini(), kl = kena((a) => a.includes("rob"));
+  if (kl.length) pemicu.push(["Pasang laut", `${fmt(statusLaut(lt).nilai, 2)} m → ${nama(kl)}`, "batas 1,20 m", "model SMOC"]);
+  else tidak.push(lt ? "pasang laut normal" : "pasang laut tidak tersedia");
+
+  const ke = kena((a) => a.startsWith("dataran rendah"));
+  if (ke.length) pemicu.push(["Dataran rendah", nama(ke), "+1 tambahan", "elevasi ≤5 m"]);
+  tidak.push("peringatan BMKG & laporan warga tidak dipakai");
+
+  const naik = kec.filter((x) => x.skor > 0);
+  const worst = kec.reduce((a, b) => (b.skor > a.skor ? b : a), kec[0]);
+  $("dasarSum").innerHTML = naik.length
+    ? `<span>Kenapa ${badge(worst.status)}?</span><span class="ds-t">${pemicu.filter((p) => p[0] !== "Dataran rendah").map((p) => `${p[0].toLowerCase()} ${p[1].split(" → ")[0].split(" di ")[0]}`).join(" · ")}</span><span class="ds-more">detail</span>`
+    : `<span>Kenapa ${badge("normal")}?</span><span class="ds-t">semua indikator di bawah batas</span><span class="ds-more">detail</span>`;
+  $("dasarBody").innerHTML = `
+    ${pemicu.length ? `<ul class="ds-list">${pemicu.map((p) => `<li><b>${p[0]}</b><span>${p[1]}</span><small>${p[2]} · ${p[3]}</small></li>`).join("")}</ul>` : ""}
+    <p class="ds-note">Tidak berpengaruh: ${tidak.join(" · ")}.</p>
+    <p class="ds-note"><span class="kd ${k.lv}">Keandalan ${k.t.toLowerCase()}</span> ${k.d}.</p>`;
 }
 
 function renderInd(kec) {
@@ -488,14 +488,14 @@ const tambahHari = (d, n) => new Date(Date.parse(d + "T00:00:00Z") + n * 864e5).
 
 async function simTanggal(tgl) {
   $("simDate").value = tgl;
-  $("simInfo").textContent = "memuat data " + tglID(tgl) + "…";
+  $("simInfo").textContent = "memuat…";
   try {
     const r = await fetch("api/simulasi?tanggal=" + tgl);
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || r.status);
     SIMT = j;
     const jenis = j.selisihHari > 0 ? `prakiraan ${j.selisihHari} hari ke depan` : j.selisihHari === 0 ? "hari ini" : `${-j.selisihHari} hari yang lalu`;
-    $("simInfo").innerHTML = `<b>${tglID(tgl)}</b> · ${jenis} · <a href="#dasarSim">lihat dasar data simulasi</a>`;
+    $("simInfo").innerHTML = `${jenis} <span class="kd ${keandalan(j.selisihHari).lv}">keandalan ${keandalan(j.selisihHari).t.toLowerCase()}</span>`;
   } catch (e) {
     SIMT = null;
     $("simInfo").textContent = "Gagal memuat simulasi: " + e.message;
@@ -521,10 +521,12 @@ function bindSim() {
   d.value = tambahHari(hariIni(), 1);
   d.addEventListener("change", () => d.value && simTanggal(d.value));
   document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-  document.querySelectorAll(".chips button").forEach((b) => b.addEventListener("click", () => {
-    const v = b.dataset.d;
+  $("simPreset").addEventListener("change", (e) => {
+    const v = e.target.value;
+    if (!v) return;
     simTanggal(v.startsWith("+") ? tambahHari(hariIni(), +v.slice(1)) : v);
-  }));
+    e.target.value = "";
+  });
   const rain = $("simRain"), river = $("simRiver"), laut = $("simLaut");
   const upd = () => {
     SIM.rain = +rain.value; SIM.river = +river.value; SIM.laut = +laut.value;
