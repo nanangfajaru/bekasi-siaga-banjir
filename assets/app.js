@@ -159,29 +159,35 @@ function renderInd(kec) {
       <div class="ind-top"><span class="ind-n">${o.n}</span>${o.pill}</div>
       <div class="ind-v">${o.v}</div><div class="ind-d">${o.d}</div>
       <div class="ind-r"><b>Skor:</b> ${o.r}</div>
-      <div class="ind-s"><b>Sumber:</b> ${o.s}</div></div>`;
+      <div class="ind-s"><b>Sumber:</b> ${o.s}</div>
+      ${T ? "" : `<div class="ind-u"><b>Pembaruan:</b> ${o.u}</div>`}</div>`;
   $("inds").innerHTML = [
     { n: "Curah hujan", pill: st(!!DATA.cuaca), v: kec.length ? `${fmt(top.v)} <small>mm/hari</small>` : "–",
       d: kec.length ? `tertinggi di ${top.k.nama} (24 jam lalu / depan)` : "data belum tersedia",
       r: "≥20 mm +1 · ≥50 +2 · ≥100 +3 · ≥150 +4",
-      s: T ? `${T.sumberHujan}, per jam` : `Open-Meteo (hujan per jam) dan BMKG prakiraan 3-jaman (${nBmkg}/23 desa)` },
+      s: T ? `${T.sumberHujan}, per jam` : `Open-Meteo (hujan per jam) dan BMKG prakiraan 3-jaman (${nBmkg}/23 desa)`,
+      u: "Open-Meteo tiap 1–6 jam, BMKG 2× sehari · dashboard cek tiap 15 menit" },
     { n: "Debit sungai", pill: st(sg.some((s) => s.ok)), v: `${sv("citarum")} <small>·</small> ${sv("kali-bekasi")} <small>m³/s</small>`,
       d: "Citarum hilir · Kali Bekasi", r: "dibanding debit historis: ≥P90 +1 · ≥P95 +2 · ≥P99 +3",
-      s: "Model GloFAS (Open-Meteo Flood API), harian" },
+      s: "Model GloFAS (Open-Meteo Flood API), harian",
+      u: "GloFAS 1× sehari · dashboard cek tiap 1 jam" },
     { n: "Peringatan dini cuaca", pill: T ? pill("off", "Tidak dipakai di simulasi") : st(!!DATA.peringatan), v: T ? "–" : `${pd} <small>aktif</small>`,
       d: T ? "hanya ada untuk waktu sekarang" : "yang menyebut kecamatan di Kab. Bekasi", r: "kecamatan disebut +2",
-      s: "BMKG Nowcast (RSS peringatan dini)" },
+      s: "BMKG Nowcast (RSS peringatan dini)",
+      u: "langsung saat BMKG menerbitkan peringatan · dashboard cek tiap 10 menit" },
     (() => {
       const lt = lautKini(), sl = lt ? statusLaut(lt) : null;
       return { n: "Pasang laut (rob)", pill: T ? (lt ? pill("sim", "Simulasi") : pill("off", "Tidak tersedia")) : st(!!lt),
         v: lt ? `${fmt(sl.nilai, 2)} <small>m</small>` : "–",
         d: lt ? `${T ? "puncak pada tanggal itu" : "puncak 24 jam ke depan"} · ${lt.puncak24.waktu.slice(11, 16).replace(":", ".")}` : (V().laut?.laut?.alasan || "data belum tersedia"),
         r: "pesisir (Muaragembong, Tarumajaya, Babelan): ≥P90 +1 · ≥P95 +2 · ≥P99 +3",
-        s: "Open-Meteo Marine (model pasang surut SMOC), per jam" };
+        s: "Open-Meteo Marine (model pasang surut SMOC), per jam",
+        u: "model SMOC 1× sehari (data per jam) · dashboard cek tiap 30 menit" };
     })(),
     { n: "Laporan banjir warga", pill: T ? pill("off", "Tidak dipakai di simulasi") : st(!!DATA.laporan), v: T ? "–" : `${lap} <small>laporan</small>`,
       d: T ? "hanya ada untuk waktu sekarang" : "7 hari terakhir di Kab. Bekasi", r: "dalam 24 jam +2 · dalam 7 hari +1",
-      s: "PetaBencana.id (laporan warga)" },
+      s: "PetaBencana.id (laporan warga)",
+      u: "langsung saat warga melapor · dashboard cek tiap 5 menit" },
   ].map(card).join("");
 }
 
