@@ -65,7 +65,7 @@
 
   <section class="kpis" id="kpis" aria-live="polite"></section>
 
-  <section class="grid-2">
+  <section class="grid-2 map-row">
     <div class="card map-card">
       <div class="card-h">
         <h2>Peta risiko per kecamatan</h2>
@@ -74,9 +74,10 @@
       <div id="map" role="img" aria-label="Peta status risiko banjir kecamatan di Kabupaten Bekasi"></div>
       <p class="note">Titik = desa pantau BMKG di tiap kecamatan. Klik titik untuk detail. Segitiga biru = titik pantau sungai.</p>
     </div>
-    <div class="card">
-      <div class="card-h"><h2>Peringkat risiko</h2><span class="sub">tertinggi di atas</span></div>
-      <ol class="rank" id="rank"></ol>
+    <div class="card river-card">
+      <div class="card-h"><h2>Debit sungai</h2><span class="sub">model GloFAS · 14 hari sebelum + 7 hari sesudah</span></div>
+      <div class="rivers" id="rivers"></div>
+      <p class="note">Garis putus-putus = prakiraan. Garis abu = normal (median 2019–2026).</p>
     </div>
   </section>
 
@@ -95,12 +96,7 @@
     </div>
   </section>
 
-  <section class="card">
-    <div class="card-h"><h2>Debit sungai</h2><span class="sub">model GloFAS · 14 hari sebelum + 7 hari sesudah · garis abu = normal (median 2019–2026)</span></div>
-    <div class="rivers" id="rivers"></div>
-  </section>
-
-  <section class="grid-2">
+  <section class="grid-2 even">
     <div class="card">
       <div class="card-h"><h2>Peringatan dini cuaca BMKG</h2><span class="sub" id="pdSub"></span></div>
       <div id="alerts" class="list"></div>
@@ -117,7 +113,7 @@
   </section>
 
   <section class="card">
-    <div class="card-h"><h2>Data semua kecamatan</h2></div>
+    <div class="card-h"><h2>Peringkat risiko &amp; data semua kecamatan</h2><span class="sub">risiko tertinggi di atas · klik baris untuk melihat grafik hujan &amp; prakiraan</span></div>
     <div class="table-wrap"><table id="tbl"></table></div>
   </section>
 

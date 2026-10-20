@@ -104,7 +104,6 @@ function render() {
   renderInd(kec);
   renderKPI(kec);
   renderMap(kec);
-  renderRank(kec);
   renderSel(kec);
   renderRain();
   renderForecast();
@@ -115,6 +114,7 @@ function render() {
   renderTable(kec);
   $("statusKey").innerHTML = `Skor 0 ${badge("normal")} · 1–2 ${badge("waspada")} · 3–4 ${badge("siaga")} · ≥5 ${badge("awas")}`;
   $("mapLegend").innerHTML = STATUS.map(badge).join("");
+  if (map) requestAnimationFrame(() => map.invalidateSize());
 }
 
 function renderInd(kec) {
@@ -204,12 +204,6 @@ function renderMap(kec) {
   }
 }
 
-function renderRank(kec) {
-  const s = [...kec].sort((a, b) => b.skor - a.skor || (b.hujan || 0) - (a.hujan || 0));
-  $("rank").innerHTML = s.map((k, i) => `<li data-id="${k.id}"><span class="n">${i + 1}</span>
-    <span class="nm">${k.nama}<span class="why">${k.alasan.length ? k.alasan.join(" · ") : `hujan ${fmt(k.hujan, 1)} mm · elevasi ${k.elevasi ?? "–"} m`}</span></span>${badge(k.status)}</li>`).join("");
-  $("rank").querySelectorAll("li").forEach((li) => li.addEventListener("click", () => pilih(li.dataset.id)));
-}
 
 function renderSel(kec) {
   const sel = $("kecSel");
@@ -352,10 +346,19 @@ function renderPolicy(kec) {
 }
 
 function renderTable(kec) {
-  const rows = [...kec].sort((a, b) => b.skor - a.skor || a.nama.localeCompare(b.nama));
-  $("tbl").innerHTML = `<thead><tr><th>Kecamatan</th><th>Status</th><th>Skor</th><th>${V().tanggal ? "Hujan H-1 (mm)" : "Hujan 24j lalu (mm)"}</th><th>${V().tanggal ? "Hujan hari-H (mm)" : "Prakiraan 24j Open-Meteo"}</th><th>Prakiraan 24j BMKG</th><th>Cuaca sekarang (BMKG)</th><th>Suhu</th><th>Elevasi (m)</th></tr></thead>
-  <tbody>${rows.map((k) => `<tr><td>${k.nama}</td><td>${badge(k.status)}</td><td>${k.skor}</td><td>${fmt(k.hujan24Lalu)}</td><td>${fmt(k.hujan24Depan)}</td><td>${fmt(k.hujan24DepanBmkg)}</td>
+  const T = V().tanggal;
+  const rows = [...kec].sort((a, b) => b.skor - a.skor || (b.hujan || 0) - (a.hujan || 0) || a.nama.localeCompare(b.nama));
+  $("tbl").innerHTML = `<thead><tr><th>#</th><th class="l">Kecamatan</th><th class="l">Status</th><th>Skor</th><th class="l">Faktor penyebab</th>
+    <th>${T ? "Hujan H-1 (mm)" : "Hujan 24j lalu (mm)"}</th><th>${T ? "Hujan hari-H (mm)" : "Prakiraan 24j Open-Meteo"}</th><th>Prakiraan 24j BMKG</th><th>Cuaca sekarang (BMKG)</th><th>Suhu</th><th>Elevasi (m)</th></tr></thead>
+  <tbody>${rows.map((k, i) => `<tr data-id="${k.id}" class="${k.id === selKec ? "sel" : ""}"><td class="n">${i + 1}</td><td class="l nm">${k.nama}</td><td class="l">${badge(k.status)}</td><td>${k.skor}</td>
+    <td class="l why">${k.alasan.length ? k.alasan.join(" · ") : "tidak ada faktor risiko"}</td>
+    <td>${fmt(k.hujan24Lalu)}</td><td>${fmt(k.hujan24Depan)}</td><td>${fmt(k.hujan24DepanBmkg)}</td>
     <td>${k.sekarang?.cuaca || "–"}</td><td>${k.sekarang ? k.sekarang.suhu + "°C" : "–"}</td><td>${k.elevasi ?? "–"}</td></tr>`).join("")}</tbody>`;
+  $("tbl").querySelectorAll("tbody tr").forEach((tr) => tr.addEventListener("click", () => {
+    pilih(tr.dataset.id);
+    $("tbl").querySelectorAll("tr.sel").forEach((x) => x.classList.remove("sel"));
+    tr.classList.add("sel");
+  }));
 }
 
 /* ---------- Simulasi ---------- */

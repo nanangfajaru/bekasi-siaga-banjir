@@ -8,7 +8,7 @@ Dashboard realtime risiko banjir 23 kecamatan di Kabupaten Bekasi. Tugas mata ku
 
 - **Kartu indikator**: curah hujan, debit sungai, peringatan dini, dan laporan warga, lengkap dengan nilai saat ini, cara masuk ke skor, dan sumber data live.
 - **Status kabupaten dan per kecamatan** (Normal, Waspada, Siaga, Awas), dihitung otomatis dari data live.
-- **Peta risiko**, peringkat kecamatan, dan tabel semua kecamatan.
+- **Peta risiko** dengan grafik debit sungai di sampingnya, dan **tabel peringkat risiko** semua kecamatan beserta faktor penyebabnya.
 - **Curah hujan per jam**: 24 jam terakhir dan 24 jam ke depan.
 - **Prakiraan cuaca BMKG 2 hari** (besok dan lusa) per desa pantau, dibagi pagi 06.00, siang 12.00, dan malam 18.00.
 - **Debit sungai** Citarum dan Kali Bekasi: 14 hari lalu dan 7 hari prakiraan.
