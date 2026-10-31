@@ -41,8 +41,12 @@ Dashboard realtime risiko banjir 23 kecamatan di Kabupaten Bekasi. Tugas mata ku
 | `api/simulasi.js` | Data hujan, sungai, dan muka laut untuk tanggal pilihan |
 | `api/laut.js` | Tinggi muka laut (pasang/rob) dari Open-Meteo Marine API |
 | `api/peringatan.js` | Peringatan dini BMKG, dicocokkan dengan nama kecamatan |
+| `api/status.js` | Skor, status, dan alasan per kecamatan siap pakai untuk bot/agent (lihat di bawah) |
 | `api/_lib.js` | Daftar kecamatan (kode desa BMKG, koordinat) dan titik sungai |
+| `assets/skor.js` | Rumus skor risiko, dipakai bersama oleh dashboard dan `api/status` |
 | `index.html`, `assets/` | Tampilan dashboard |
+| `hermes/skills/` | Skill Hermes Agent (bot Telegram/WhatsApp) |
+| `docs/konsep-hermes-agent.md` | Rancangan integrasi Hermes Agent |
 
 Endpoint `api/` berjalan sebagai Vercel Serverless Functions. Data di-cache 5–60 menit, dan halaman memuat ulang otomatis setiap 10 menit.
 
@@ -58,5 +62,15 @@ Skor per kecamatan:
 - **Dataran rendah** (≤5 m) +1, hanya jika ada faktor lain.
 
 Status: 0 = Normal, 1–2 = Waspada, 3–4 = Siaga, ≥5 = Awas.
+
+## API status (untuk bot dan pihak lain)
+
+`/api/status` mengembalikan status kabupaten, rekomendasi tindakan, ringkasan sungai dan pasang laut, serta skor, status, alasan, hujan, dan prakiraan 2 hari per kecamatan. Rumusnya sama persis dengan dashboard.
+
+- `/api/status` — semua kecamatan, urut dari skor tertinggi
+- `/api/status?kecamatan=babelan` — satu kecamatan (nama atau id `01`–`23`)
+- `/api/status?lat=-6.10&lon=107.03` — kecamatan terdekat dari lokasi
+
+Di-cache 5 menit. Skill Hermes Agent `hermes/skills/cek-status-banjir` memakai endpoint ini.
 
 Dashboard ini bersifat informatif dan bukan penetapan status bencana resmi.

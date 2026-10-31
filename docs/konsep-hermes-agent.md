@@ -1,6 +1,6 @@
 # Konsep: Hermes Agent untuk Bekasi Siaga Banjir
 
-Dokumen rancangan. Belum diimplementasikan.
+Dokumen rancangan. Fase 1 sisi dashboard sudah dibuat: `assets/skor.js`, `api/status`, dan skill `hermes/skills/cek-status-banjir`.
 
 ## Gagasan utama
 
@@ -21,7 +21,7 @@ Sumber data (BMKG, Open-Meteo, GloFAS, SMOC, PetaBencana)
 Vercel: api/cuaca, sungai, laut, laporan, peringatan
               │
               ▼
-[BARU] api/status  ← rumus skor yang sama dengan dashboard (api/_skor.js)
+api/status  ← rumus skor yang sama dengan dashboard (assets/skor.js)
               │
      ┌────────┴─────────┐
      ▼                  ▼
@@ -41,7 +41,7 @@ Hermes Agent adalah proses Python yang berjalan terus (gateway + scheduler), jad
 
 Saat ini fungsi `nilai()`, `statusSungai()`, dan `statusLaut()` hanya ada di `assets/app.js` (browser). Agent butuh hasil yang sama tanpa membuka browser.
 
-1. Pindahkan rumus ke `api/_skor.js` (fungsi murni, tanpa DOM, tanpa `SIM`).
+1. Pindahkan rumus ke `assets/skor.js` (fungsi murni, tanpa DOM; simulasi manual jadi parameter).
 2. Buat `api/status.js` yang memanggil kelima sumber, menjalankan rumus, dan mengembalikan:
 
 ```json
@@ -56,7 +56,7 @@ Saat ini fungsi `nilai()`, `statusSungai()`, dan `statusLaut()` hanya ada di `as
 }
 ```
 
-3. Dashboard juga mengimpor `_skor.js` (atau tetap memakai salinan yang diuji sama) supaya satu sumber kebenaran.
+3. Dashboard memuat file yang sama (`<script src="assets/skor.js">`), jadi hanya ada satu sumber kebenaran.
 
 Langkah ini bermanfaat juga di luar agent: endpoint `api/status` bisa dipakai pihak lain (BPBD, aplikasi kelurahan).
 
@@ -114,7 +114,7 @@ Alternatif yang lebih rapi: bungkus endpoint sebagai **MCP server** kecil (`tool
 
 | Fase | Isi | Hasil yang bisa didemokan |
 |---|---|---|
-| 1 | `api/_skor.js` + `api/status`; Hermes + Telegram + skill `cek-status-banjir` | Bot menjawab status kecamatan |
+| 1 | `assets/skor.js` + `api/status` (selesai); Hermes + Telegram + skill `cek-status-banjir` | Bot menjawab status kecamatan |
 | 2 | DB pelanggan, `/langganan`, cron 15 menit + anti-spam | Peringatan otomatis saat status naik (uji dengan `api/simulasi`) |
 | 3 | `terima-laporan-banjir` + panel dashboard + verifikasi | Laporan chat muncul di peta |
 | 4 | Briefing operator, draf rilis, WhatsApp | Ruang kendali dapat ringkasan rutin |

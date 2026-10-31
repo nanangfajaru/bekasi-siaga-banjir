@@ -3,19 +3,10 @@ const $ = (id) => document.getElementById(id);
 const fmt = (n, d = 1) => (n == null || isNaN(n) ? "–" : Number(n).toLocaleString("id-ID", { minimumFractionDigits: d, maximumFractionDigits: d }));
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
-const STATUS = ["normal", "waspada", "siaga", "awas"];
-const LABEL = { normal: "Normal", waspada: "Waspada", siaga: "Siaga", awas: "Awas" };
+const { STATUS, LABEL, POLICY } = SkorBanjir;
 const ICON = { normal: "✓", waspada: "!", siaga: "!!", awas: "!!!" };
 const badge = (s) => `<span class="st ${s}"><i aria-hidden="true">${ICON[s]}</i>${LABEL[s]}</span>`;
 const color = (s) => css(`--${s}`);
-
-
-const POLICY = {
-  normal: ["Bersihkan saluran, gorong-gorong, dan pintu air secara rutin", "Uji kesiapan pompa air dan perahu karet BPBD", "Sosialisasi jalur evakuasi ke RT/RW di desa rawan"],
-  waspada: ["Pantau cuaca, debit sungai, dan jadwal pasang laut setiap 3 jam", "Siagakan pompa portabel di titik genangan langganan", "Kirim info dini ke warga lewat RT/RW dan media sosial Pemkab"],
-  siaga: ["Buka posko siaga banjir di kantor kecamatan", "Perahu karet dan personel BPBD standby di lokasi", "Siapkan evakuasi lansia, anak, dan penyandang disabilitas", "Koordinasi operasi pintu air dengan BBWS Citarum", "Saat pasang tinggi: periksa tanggul pesisir dan tutup pintu air muara di Muaragembong, Tarumajaya, Babelan"],
-  awas: ["Evakuasi warga dari permukiman tergenang", "Aktifkan dapur umum dan pengungsian", "Usulkan status tanggap darurat bencana kepada Bupati", "Tutup sementara akses jalan yang terendam"],
-};
 
 let DATA = { cuaca: null, sungai: null, laporan: null, peringatan: null, laut: null };
 let map, layer, charts = {}, selKec = null;
@@ -53,61 +44,16 @@ async function load() {
   render();
 }
 
-/* ---------- Penilaian risiko ---------- */
-function laporanNyata() {
-  return (V().laporan?.laporan || []).filter((r) => !r.latihan);
-}
-
-// Status sungai: debit (hari acuan s.d. 3 hari ke depan) dibanding persentil historis 2019–2026.
-// ≥P90 waspada (+1), ≥P95 siaga (+2), ≥P99 awas (+3).
-function statusSungai(s) {
-  const m = SIM.on ? SIM.river : 1;
-  const nilai = Math.max(s.kini || 0, s.puncak3 || 0) * m;
-  const a = s.ambang || {};
-  const poin = nilai >= a.p99 ? 3 : nilai >= a.p95 ? 2 : nilai >= a.p90 ? 1 : 0;
-  return { nilai, poin, status: STATUS[poin], persenNormal: a.p50 ? (nilai / a.p50) * 100 : null, persenKap: a.kapasitas ? (nilai / a.kapasitas) * 100 : null };
-}
-
-// Status pasang laut: puncak muka laut 24 jam (atau pada tanggal simulasi) dibanding persentil 2022–2026.
+/* ---------- Penilaian risiko (rumus di assets/skor.js) ---------- */
+function laporanNyata() { return SkorBanjir.laporanNyata(V().laporan?.laporan); }
+function statusSungai(s) { return SkorBanjir.statusSungai(s, SIM.on ? SIM.river : 1); }
 function lautKini() { const l = V().laut?.laut; return l?.ok ? l : null; }
-function statusLaut(l) {
-  const nilai = (l.puncak24?.tinggi ?? 0) + (SIM.on ? SIM.laut : 0);
-  const a = l.ambang;
-  const poin = nilai >= a.p99 ? 3 : nilai >= a.p95 ? 2 : nilai >= a.p90 ? 1 : 0;
-  return { nilai, poin, status: STATUS[poin] };
-}
+function statusLaut(l) { return SkorBanjir.statusLaut(l, SIM.on ? SIM.laut : 0); }
 
 function nilai(k) {
-  const add = SIM.on ? SIM.rain : 0;
-  const hujan = Math.max(k.hujan24Lalu || 0, k.hujan24Depan || 0, k.hujan24DepanBmkg || 0) + add;
-  const alasan = [];
-  let skor = 0;
-  const h = hujan >= 150 ? 4 : hujan >= 100 ? 3 : hujan >= 50 ? 2 : hujan >= 20 ? 1 : 0;
-  if (h) { skor += h; alasan.push(`hujan ${fmt(hujan, 0)} mm`); }
-
-  const pd = (V().peringatan?.bekasi || []).some((a) => a.kecamatan.includes(k.id));
-  if (pd) { skor += 2; alasan.push("peringatan dini BMKG"); }
-
-  const now = Date.now();
-  const lap = laporanNyata().filter((r) => r.kecamatan?.id === k.id);
-  if (lap.some((r) => now - new Date(r.waktu) < 864e5)) { skor += 2; alasan.push("laporan banjir 24 jam"); }
-  else if (lap.length) { skor += 1; alasan.push("laporan banjir 7 hari"); }
-
-  let sg = 0;
-  for (const s of V().sungai?.sungai || []) {
-    if (s.ok && (s.kecamatan || []).includes(k.id)) sg = Math.max(sg, statusSungai(s).poin);
-  }
-  if (sg) { skor += sg; alasan.push(sg >= 3 ? "debit sungai ekstrem" : sg >= 2 ? "debit sungai sangat tinggi" : "debit sungai tinggi"); }
-
-  const lt = lautKini();
-  if (lt && lt.kecamatan.includes(k.id)) {
-    const pl = statusLaut(lt).poin;
-    if (pl) { skor += pl; alasan.push(pl >= 3 ? "pasang laut ekstrem (rob)" : pl >= 2 ? "pasang laut sangat tinggi (rob)" : "pasang laut tinggi (rob)"); }
-  }
-
-  if (skor > 0 && k.elevasi != null && k.elevasi <= 5) { skor += 1; alasan.push(`dataran rendah ${k.elevasi} m`); }
-  const status = skor >= 5 ? "awas" : skor >= 3 ? "siaga" : skor >= 1 ? "waspada" : "normal";
-  return { skor, status, hujan, alasan };
+  const v = V();
+  return SkorBanjir.nilai(k, { peringatan: v.peringatan?.bekasi, laporan: v.laporan?.laporan, sungai: v.sungai?.sungai, laut: v.laut?.laut },
+    SIM.on ? { hujan: SIM.rain, sungai: SIM.river, laut: SIM.laut } : {});
 }
 
 function semua() {
@@ -436,7 +382,7 @@ function renderReports() {
 }
 
 function renderPolicy(kec) {
-  const worst = kec.reduce((a, b) => (STATUS.indexOf(b.status) > STATUS.indexOf(a) ? b.status : a), "normal");
+  const worst = SkorBanjir.terburuk(kec);
   $("policy").innerHTML = STATUS.map((s) => {
     const list = kec.filter((k) => k.status === s).map((k) => k.nama);
     return `<div class="pol ${s} ${s === worst ? "active" : ""}"><h3>${badge(s)}<span class="cnt">${list.length} kecamatan</span></h3>
