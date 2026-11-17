@@ -1,0 +1,44 @@
+{
+  "jobs": [
+    {
+      "id": "siagawatchdog1",
+      "name": "siaga-watchdog",
+      "schedule": "every 15m",
+      "script": "watchdog_siaga.py",
+      "skills": ["siaga-banjir-operasi"],
+      "enabled_toolsets": ["siaga_banjir"],
+      "deliver": "telegram",
+      "prompt": "Skrip watchdog mendeteksi perubahan status risiko banjir (lihat konteks: eskalasi dan/atau pulih). Ikuti skill siaga-banjir-operasi bagian 'peringatan eskalasi (cron watchdog)'. Ambil data terbaru dengan tool siaga_* untuk kecamatan yang naik menjadi Awas. Tulis satu pesan untuk grup petugas. Jangan memanggil siaga_kirim_siaran."
+    },
+    {
+      "id": "siagabriefpagi",
+      "name": "siaga-briefing-pagi",
+      "schedule": "0 6 * * *",
+      "timezone": "Asia/Jakarta",
+      "skills": ["siaga-briefing"],
+      "enabled_toolsets": ["siaga_banjir"],
+      "deliver": "telegram",
+      "prompt": "Buat briefing pagi kondisi banjir Kabupaten Bekasi sesuai skill siaga-briefing. Fokus pada prakiraan hari ini dan prioritas tindakan petugas."
+    },
+    {
+      "id": "siagabriefsore",
+      "name": "siaga-outlook-malam",
+      "schedule": "0 17 * * *",
+      "timezone": "Asia/Jakarta",
+      "skills": ["siaga-briefing"],
+      "enabled_toolsets": ["siaga_banjir"],
+      "deliver": "telegram",
+      "prompt": "Buat outlook malam (maks 6 baris) sesuai skill siaga-briefing: kecamatan dengan prakiraan hujan tertinggi malam ini, jam pasang laut tertinggi, status sungai, dan kesiapan petugas piket. Jika semua Normal dan prakiraan hujan < 20 mm, cukup 2 baris."
+    },
+    {
+      "id": "siagamingguan",
+      "name": "siaga-laporan-mingguan",
+      "schedule": "0 7 * * 1",
+      "timezone": "Asia/Jakarta",
+      "skills": ["siaga-laporan-mingguan"],
+      "enabled_toolsets": ["siaga_banjir"],
+      "deliver": "telegram",
+      "prompt": "Buat laporan mingguan Siaga Banjir untuk 7 hari terakhir sesuai skill siaga-laporan-mingguan, termasuk evaluasi akurasi dan usulan kalibrasi."
+    }
+  ]
+}
