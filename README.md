@@ -59,4 +59,63 @@ Skor per kecamatan:
 
 Status: 0 = Normal, 1–2 = Waspada, 3–4 = Siaga, ≥5 = Awas.
 
+## AI Agent: Asisten Siaga Banjir
+
+Agent berbasis Claude (tool use) yang membaca data live dashboard ini dan memakai **rumus skor yang sama persis** dengan tampilan (`api/_risiko.js`). Agent tidak mengarang angka: setiap angka diambil lewat tool.
+
+**Kemampuan**
+- Chat di dashboard (tombol **💬 Tanya Asisten** di kanan bawah) untuk warga dan petugas.
+- Menjelaskan status kabupaten dan tiap kecamatan beserta faktor penyebab dan poinnya.
+- Prakiraan BMKG besok dan lusa, debit sungai, pasang laut (rob), peringatan dini, laporan warga.
+- Simulasi tanggal (arsip sejak 2019 atau prakiraan s.d. 15 hari) dan skenario "bagaimana jika" (tambah hujan, debit, muka laut).
+- Rekomendasi tindakan pemda sesuai status, dengan pengingat bahwa status resmi ditetapkan BPBD.
+- **Briefing otomatis** setiap pagi 06.00 WIB ke grup Telegram (opsional), lewat Vercel Cron.
+
+**Tool yang dipakai agent**
+
+| Tool | Isi |
+|---|---|
+| `status_kabupaten` | Status kabupaten, 23 kecamatan, top 5 risiko, ringkasan sungai/rob/peringatan/laporan, rekomendasi |
+| `detail_kecamatan` | Skor dan faktor, hujan per jam, prakiraan BMKG 2 hari, peringatan & laporan setempat |
+| `debit_sungai` | Citarum hilir dan Kali Bekasi: debit, ambang P50–P99, % kapasitas, deret 21 hari |
+| `pasang_laut` | Muka laut sekarang, puncak 24 jam, puncak harian 7 hari |
+| `peringatan_dan_laporan` | Peringatan dini BMKG (Bekasi) dan laporan PetaBencana.id |
+| `simulasi_tanggal` | Status per kecamatan untuk tanggal pilihan (memakai `api/simulasi`) |
+| `skenario` | "Bagaimana jika" di atas data live |
+
+**File**
+
+| File | Isi |
+|---|---|
+| `api/agent.js` | Endpoint chat `POST /api/agent` `{ messages: [{role, content}] }` → `{ jawaban, toolDipakai }` |
+| `api/briefing.js` | `GET /api/briefing` (briefing teks), `?kirim=1` kirim ke Telegram, `?min=siaga` hanya jika status ≥ Siaga |
+| `api/_agen.js` | Prompt sistem, definisi tool, loop tool-use Claude |
+| `api/_risiko.js` | Rumus skor dan rekomendasi (port dari `assets/app.js`) |
+| `api/_data.js` | Mengambil data dari endpoint `api/*` milik dashboard sendiri (ikut cache CDN) |
+| `assets/agent.js` | Panel chat di dashboard |
+| `vercel.json` | Cron briefing harian 23.00 UTC = 06.00 WIB |
+
+**Pemasangan (Vercel → Settings → Environment Variables)**
+
+| Variabel | Wajib | Keterangan |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | ya | Kunci API dari console.anthropic.com |
+| `ANTHROPIC_MODEL` | tidak | Default `claude-sonnet-5-5`. Pakai `claude-haiku-5-5` untuk biaya lebih murah |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | tidak | Untuk briefing/alarm ke grup Telegram (buat bot lewat @BotFather) |
+| `CRON_SECRET` | disarankan | Hanya request ber-header `Authorization: Bearer <CRON_SECRET>` yang boleh mengirim ke Telegram. Vercel Cron menambahkannya otomatis |
+| `AGENT_ALLOWED_ORIGIN` | tidak | Batasi domain yang boleh memanggil `/api/agent`, mis. `https://bekasi-siaga-banjir.vercel.app` |
+| `DATA_BASE_URL` | tidak | Sumber data jika berbeda dari domain deploy |
+
+Lalu deploy ulang. Uji cepat:
+
+```bash
+curl -X POST https://<domain>/api/agent -H 'content-type: application/json' \
+  -d '{"messages":[{"role":"user","content":"Bagaimana kondisi banjir Kabupaten Bekasi sekarang?"}]}'
+curl https://<domain>/api/briefing
+```
+
+**Alarm per jam.** Paket Vercel Hobby hanya mengizinkan cron harian. Untuk alarm tiap jam, pakai paket Pro (ubah jadwal di `vercel.json`) atau layanan cron gratis (mis. cron-job.org) yang memanggil `https://<domain>/api/briefing?kirim=1&min=siaga` dengan header `Authorization: Bearer <CRON_SECRET>`. Pesan hanya terkirim bila ada kecamatan Siaga/Awas.
+
+**Biaya dan keamanan.** Endpoint `/api/agent` publik dan setiap pertanyaan memakai kredit API (±2–6 panggilan Claude per pertanyaan). Riwayat dibatasi 12 pesan × 1.500 karakter dan tidak disimpan di server. Atur batas pemakaian bulanan di console Anthropic.
+
 Dashboard ini bersifat informatif dan bukan penetapan status bencana resmi.
