@@ -1,0 +1,15 @@
+# Jangan pernah commit kredensial atau data pengguna profil Hermes
+auth.json
+.env
+.env.EXAMPLE
+memories/
+sessions/
+logs/
+plugin-data/
+state.db*
+*.db
+*.db-*
+cron/*
+!cron/jobs.json
+skills/.*
+__pycache__/

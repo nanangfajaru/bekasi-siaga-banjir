@@ -1,0 +1,35 @@
+# Profil Hermes: Siaga Banjir Kabupaten Bekasi
+# Model BEBAS: jalankan `siaga-banjir-bekasi model` (atau `hermes -p siaga-banjir-bekasi model`)
+# untuk memilih penyedia & model apa pun — Nous Portal, OpenRouter, Anthropic, OpenAI, Gemini,
+# Kimi, GLM, MiniMax, NVIDIA NIM, atau model lokal (Ollama / LM Studio / vLLM).
+
+model:
+  provider: auto            # deteksi otomatis dari kredensial yang tersedia
+
+# Cadangan saat model utama gagal/kena limit (aktifkan & sesuaikan dengan `hermes fallback add`):
+# fallback_providers:
+#   - provider: openrouter
+#     model: <model-cadangan-di-openrouter>
+#   - provider: custom                     # model lokal, tetap jalan saat internet/kuota habis
+#     model: <nama-model-lokal>
+#     base_url: http://localhost:11434/v1
+
+# Cron (watchdog, briefing, laporan) boleh memakai model lebih murah dari model chat:
+# cron:
+#   model: <model-murah>
+#   model_provider: <penyedia>
+
+plugins:
+  enabled:
+    - siaga_banjir
+  entries:
+    siaga_banjir:
+      settings:
+        inject_status: true   # sisipkan ringkasan status live ke percakapan saat status berubah
+
+# Variabel yang diteruskan ke skrip watchdog cron (nilainya di .env profil)
+terminal:
+  env_passthrough:
+    - SIAGA_BASE_URL
+    - SIAGA_ALARM_MIN
+    - SIAGA_COOLDOWN_JAM

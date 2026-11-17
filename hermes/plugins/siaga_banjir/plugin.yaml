@@ -1,0 +1,19 @@
+name: siaga_banjir
+version: 1.0.0
+description: Siaga Banjir Kabupaten Bekasi — data live, skor risiko, simulasi, riwayat, kejadian, evaluasi akurasi, dan siaran peringatan dengan persetujuan manusia
+author: Bekasi Siaga Banjir (Smart Environment)
+provides_tools:
+  - siaga_status_kabupaten
+  - siaga_detail_kecamatan
+  - siaga_debit_sungai
+  - siaga_pasang_laut
+  - siaga_peringatan_laporan
+  - siaga_simulasi_tanggal
+  - siaga_skenario
+  - siaga_riwayat
+  - siaga_catat_kejadian
+  - siaga_evaluasi
+  - siaga_kirim_siaran
+provides_hooks:
+  - pre_llm_call
+  - pre_tool_call

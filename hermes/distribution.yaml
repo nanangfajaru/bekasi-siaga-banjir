@@ -1,0 +1,43 @@
+name: siaga-banjir-bekasi
+version: 1.0.0
+description: "AI Agent Smart Environment untuk pengelolaan siaga banjir Kabupaten Bekasi: data live, skor risiko 23 kecamatan, watchdog eskalasi, briefing, verifikasi laporan warga, evaluasi akurasi, dan siaran dengan persetujuan manusia."
+author: "Bekasi Siaga Banjir (Smart Environment)"
+license: "MIT"
+
+env_requires:
+  - name: TELEGRAM_BOT_TOKEN
+    description: "Token bot Telegram dari @BotFather (untuk chat dan pengiriman briefing/peringatan)"
+    required: false
+  - name: TELEGRAM_ALLOWED_USERS
+    description: "ID Telegram yang boleh memakai bot, pisahkan dengan koma"
+    required: false
+  - name: TELEGRAM_HOME_CHANNEL
+    description: "ID grup Telegram petugas, tujuan briefing & peringatan cron (mis. -1001234567890)"
+    required: false
+  - name: SIAGA_PETUGAS_IDS
+    description: "ID Telegram petugas yang boleh memverifikasi kejadian dan mengirim siaran publik"
+    required: false
+  - name: SIAGA_SIARAN_CHAT_ID
+    description: "ID kanal/grup siaran warga untuk siaga_kirim_siaran (opsional)"
+    required: false
+  - name: SIAGA_BASE_URL
+    description: "URL dashboard sumber data"
+    required: false
+    default: "https://bekasi-siaga-banjir.vercel.app"
+  - name: SIAGA_ALARM_MIN
+    description: "Status minimum yang memicu peringatan watchdog: waspada | siaga | awas"
+    required: false
+    default: "siaga"
+  - name: SIAGA_COOLDOWN_JAM
+    description: "Jeda minimum (jam) sebelum mengumumkan pemulihan, mencegah alarm naik-turun"
+    required: false
+    default: "3"
+
+distribution_owned:
+  - SOUL.md
+  - config.yaml
+  - skills/siaga-banjir
+  - plugins/siaga_banjir
+  - scripts/watchdog_siaga.py
+  - cron/jobs.json
+  - distribution.yaml

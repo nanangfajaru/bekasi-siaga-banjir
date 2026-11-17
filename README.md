@@ -118,4 +118,14 @@ curl https://<domain>/api/briefing
 
 **Biaya dan keamanan.** Endpoint `/api/agent` publik dan setiap pertanyaan memakai kredit API (±2–6 panggilan Claude per pertanyaan). Riwayat dibatasi 12 pesan × 1.500 karakter dan tidak disimpan di server. Atur batas pemakaian bulanan di console Anthropic.
 
+## Hermes Agent (model bebas)
+
+Folder [`hermes/`](hermes/README.md) berisi agent pengelola siaga banjir untuk [Hermes Agent](https://hermes-agent.nousresearch.com) (Nous Research). Agent ini bisa memakai model apa pun dan berjalan di Telegram, WhatsApp, Discord, atau CLI. Isinya:
+- 11 tool data & analisis dengan rumus skor yang sama dengan dashboard
+- watchdog tiap 15 menit yang tidak memakai token AI saat kondisi aman
+- riwayat status, pencatatan kejadian, dan evaluasi akurasi peringatan
+- briefing terjadwal, serta siaran publik yang selalu meminta persetujuan petugas
+
+Pemasangan: `hermes profile install ./hermes --alias`. Langkah lengkap dan ide pengembangan ada di [hermes/README.md](hermes/README.md).
+
 Dashboard ini bersifat informatif dan bukan penetapan status bencana resmi.
